@@ -1,0 +1,62 @@
+# Evidence Engine patient config (spec: task/evidence_engine_spec.md section 10, revision 2). Every statistical threshold is a PLACEHOLDER from the spec (not a clinical
+# standard): do not tune them to produce findings, only against a ground-truth scoring step. The library (outcomes, exposures, pairs) is the static file named below.
+evidence:
+  method_version: ev-v0
+  history:
+    min_history_units: 60                # a relationship needs at least this many usable units ...
+    min_history_days: 60                 # ... AND at least this many distinct outcome dates (spec 7.2: both must be met)
+    detrend: {method: trailing_median, window_days: 30, min_prior_values: 10}
+  min_exposed: 15
+  min_reference: 30
+  permutation: {n: 2000, min_shift_fraction: 0.05}      # seed = SHA-256(relationship key, as-of date, method version)
+  multiplicity: {method: benjamini_hochberg, q: 0.10, family: all_relationships_refreshed_on_the_day_that_passed_the_minimums}
+  labels:
+    p_suggestive: 0.10
+    effect_floor_binary: 0.10
+    effect_floor_continuous: 0.10
+    contrary_p: 0.10
+  placebo: {shift_fraction: 0.30}
+  overlap: {tail_quantile: 0.25, min_share_given_a: 0.25, min_ratio: 2.0, among: [supported, suggestive]}
+  event_exposure: {tail_quantile: 0.25}
+  percentile_check: {history_min: 30, supported_min_percentile: 90}
+  shape_check: {isolated_min_step: 30, rebound_tolerance: 20, steep_drop_min: 30}     # mg/dL, placeholders
+  pattern_repeat: {dawn_window: "04:00-09:00", dawn_min_rise: 20, min_share: 0.5, min_days: 14}
+  location: {home_types: [home, home_wfh, family_home], clinic_types: [clinic, hospital]}
+  presence_flags:                        # facts for presence_check; copied once from the patient's medicines and checked against the Rulebook Lookup config at load
+    other_medications: {glucose_raising: false, bp_raising: false}
+    thyroid_status: {thyroid_medication: true}
+    hypoglycemic_agent: {insulin: false, sulfonylurea: false}
+  presence_flag_sources:                 # where each flag lives in the Rulebook Lookup config (a medication class or a patient flag)
+    glucose_raising: {class: glucose_raising}
+    bp_raising: {class: bp_raising}
+    thyroid_medication: {class: thyroid}
+    insulin: {class: insulin}
+    sulfonylurea: {class: sulfonylurea}
+  resting_heart_rate_pick: last          # first | last, when a day has two values
+  stream_map:                            # generic token -> this patient's store stream; null = not available (the factor is `insufficient`, reason no_stream)
+    cgm_glucose_reading: {table: raw, name: cgm_glucose_reading}
+    continuous_heart_rate: {table: context, name: continuous_heart_rate}          # the full 15-minute stream (raw_events holds only the resting-judged part)
+    step_count_hourly: {table: context, name: step_count_hourly}
+    step_count: {table: raw, name: step_count}
+    sleep_duration: {table: raw, name: sleep_duration}
+    resting_heart_rate: {table: raw, name: resting_heart_rate}
+    medication_adherence: {table: context, name: medication_adherence}
+    mood_state: {table: context, name: mood_state}
+    meal_events: {table: context, name: meal_events}
+    diary_context: {table: context, name: diary_context}
+    location: {table: context, name: location}
+    hydration: {table: raw, name: hydration}
+    screen_time: {table: raw, name: screen_time}
+    blood_pressure_systolic: {table: raw, name: blood_pressure_systolic}
+    caffeine_intake: null
+    menstrual_cycle: null
+  paths:
+    library: config/evidence_library_v0.yaml
+    state_config: config/state_meera_iyer_v1.yaml        # available_at per stream and mood block, meal kinds, timezone (read only)
+    rulebook_dir: task/evidence_engine                   # read only, for the load check
+    candidates_file: rulebook_v0_candidates.csv
+    rulebook_config: config/rulebook_meera_iyer_v1.yaml  # read only, for the presence-flag check
+    store_db: output/personal_data_store.db              # opened read-only
+    packets_db: output/rulebook_lookup.db                # opened read-only (Stage 2b)
+    handoffs_db: output/state_engine.db                  # opened read-only (Stage 2b)
+    db_path: output/evidence_engine.db                   # the only file this engine writes

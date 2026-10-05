@@ -1,0 +1,49 @@
+# State Engine config (spec: task/state_engine.md section 4.3). Every value here is a default of the spec unless a comment says otherwise.
+# Patient-level settings (timezone, pronoun, medicine id pattern, stream units) are read from the Baseline Engine config named below,
+# so both engines always agree on them. This file is hashed into `config_version` on every snapshot.
+state:
+  baseline_config: config/patient_meera_iyer_v1.yaml
+  db_path: output/state_engine.db          # State Engine's own tables (state_log, state_items, state_handoffs); the store itself is only read
+  tick_minutes: 15
+  overdue_grace: 1.5                       # a daily / periodic measure is OVERDUE when its age exceeds cadence x this; until then its last value stands and its item stays open
+  min_history_days: 14                     # early days: no usual, no position, no persistence-triggered items
+  min_samples_usual: 30                    # a reading-level usual needs at least this many earlier samples
+  last_meal_window_minutes: 1440           # context.last_meal looks back this far
+  position:
+    method_default: sd                     # sd | percentile
+    thresholds_sd: [1, 2, 4]               # within <1, slightly 1-2, clearly 2-4, far >=4
+    thresholds_percentile: [0.35, 0.15, 0.05]   # share of earlier days at least as bad: <=0.05 far, <=0.15 clearly, <=0.35 slightly
+  persistence:
+    open_label: clearly
+    close_label: slightly
+    n_open: 2
+    n_close: 2
+  severe:
+    position: far
+    statuses: [critical_high, critical_low]
+  glucose:                                 # reading-level usual (spec 4.2b), also used by continuous heart rate for its clock-time basis
+    usual_basis: meal_relative_with_clock_fallback
+    meal_window_minutes: 180
+    meal_bucket_minutes: 15
+    clock_band_minutes: 30
+    meal_kinds: [breakfast, lunch, dinner] # a meal's kind is the first of these contained in its label (label text match)
+  streams:
+    # adverse_directions = the directions that are bad for her (required for every measure that can open an item). An item in any other direction is
+    # FAVOURABLE: still recorded and closed by the same rules, but no hand-off is written unless at opening the carried clinical status is abnormal on that side or the position is far.
+    # key = name in the snapshot; kind = how the measure arrives; source = where its rows live in the store.
+    cgm_glucose_reading:   {key: glucose,               kind: continuous, source: {table: raw, name: cgm_glucose_reading}, cadence_minutes: 15, freshness_minutes: 30, available_at: timestamp, usual_basis: glucose, adverse_directions: [above], n_open: 2, n_close: 2, cleaning: baseline_glucose}
+    continuous_heart_rate: {key: heart_rate,            kind: continuous, source: {table: context, name: continuous_heart_rate}, status_from: {table: raw, name: continuous_heart_rate}, cadence_minutes: 15, freshness_minutes: 30, available_at: timestamp, usual_basis: clock_time, adverse_directions: [above], n_open: 2, n_close: 2}
+    # DEVIATION FROM THE SPEC: hourly steps are not in the store (step_count is one date-only row per day), so steps are a daily measure here.
+    step_count:            {key: step_count,            kind: daily,      source: {table: raw, name: step_count}, cadence: daily, freshness_minutes: 1440, available_at: end_of_day, usual_basis: profile, adverse_directions: [below], n_open: 1, n_close: 1}
+    sleep_duration:        {key: sleep_duration,        kind: daily,      source: {table: raw, name: sleep_duration}, role: sleep, cadence: daily, freshness_minutes: 1440, available_at: timestamp, usual_basis: profile, adverse_directions: [below], n_open: 1, n_close: 1}
+    resting_heart_rate:    {key: resting_heart_rate,    kind: daily,      source: {table: raw, name: resting_heart_rate}, cadence: daily, freshness_minutes: 1440, available_at: timestamp, usual_basis: profile, adverse_directions: [above], n_open: 1, n_close: 1}
+    blood_pressure:        {key: blood_pressure,        kind: periodic,   source: {table: raw, names: [blood_pressure_systolic, blood_pressure_diastolic]}, unit: mmHg, cadence_days: 3, freshness_minutes: 5760, available_at: timestamp, usual_basis: profile, adverse_directions: [above], n_open: 1, n_close: 1}
+    medication_adherence:  {key: medication_adherence,  kind: count,      source: {table: context, name: medication_adherence}, cadence: daily, freshness: end_of_day, available_at: "21:00", usual_basis: history_percentile, adverse_directions: [below], n_open: 1, n_close: 1}
+    mood_state:            {key: mood_state,            kind: label,      source: {table: context, name: mood_state, block_key: time_block}, cadence: three_per_day, freshness_minutes: 480, available_at: {morning: "12:00", afternoon: "18:00", evening: "21:00"}, position_method: none}
+    hydration:             {key: hydration,             kind: daily,      source: {table: raw, name: hydration}, cadence: daily, freshness_minutes: 1440, available_at: end_of_day, usual_basis: profile, adverse_directions: [below], n_open: 1, n_close: 1}
+    screen_time:           {key: screen_time,           kind: daily,      source: {table: raw, name: screen_time}, cadence: daily, freshness_minutes: 1440, available_at: end_of_day, usual_basis: profile, adverse_directions: [above], n_open: 1, n_close: 1}
+    sedentary_time:        {key: sedentary_time,        kind: daily,      source: {table: raw, name: sedentary_time}, cadence: daily, freshness_minutes: 1440, available_at: end_of_day, usual_basis: profile, adverse_directions: [above], n_open: 1, n_close: 1}
+    hba1c:                 {key: hba1c,                 kind: lab,        source: {table: raw, name: hba1c}, unit: "%", cadence_days: 90, freshness_minutes: 144000, available_at: end_of_day, position_method: none}
+  context_streams:                         # label-only context, never compared; the stream names in the store are config, not code
+    meals: {name: meal_events}
+    diary: {name: diary_context, cadence: event, freshness: end_of_day, available_at: "21:00"}   # entries that carry a timestamp are available from it; this is the fallback for untimed ones

@@ -1,0 +1,8 @@
+# Ingest-only streams: readings the pipeline already parsed from the data dir (data/loaders.py, plausibility-passed only) that are written verbatim to
+# context_events by the context ingest. `used_by` names the only engines that read the stream. A stream here is NOT in the Baseline Engine's registry
+# (logic/registry.py) and NOT in the Baseline v2 or State Engine configs, so neither engine aggregates, tags, compares or flags it (a test enforces this).
+ingest_streams:
+  step_count_hourly:
+    kind: hourly                                 # one row per hour: timestamp, value_num = steps in that hour
+    source: {biomarker: steps_hourly}            # final/steps_hourly_yearly.csv, via data/loaders.py; no Threshold Evaluator row
+    used_by: [rulebook]                          # Rulebook Lookup's stream_map only

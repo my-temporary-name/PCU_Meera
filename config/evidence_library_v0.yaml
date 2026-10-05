@@ -1,0 +1,254 @@
+# Evidence Engine library (spec: task/evidence_engine_spec.md sections 5, 6.1, 6.2 and Appendix A; revision 2).
+# STATIC and patient-independent: nothing generates it at run time. It changes only when the rulebook changes or when someone edits it on purpose,
+# and the engine checks it against the rulebook files when it loads (property 16). Streams are generic tokens; the patient's evidence config maps them to store names.
+# The engine implements a fixed list of generic primitives (named below by what they compute, never by stream); this file picks one per outcome and exposure.
+library_version: lib-v0
+
+lookback_tags:                         # rulebook lookback kind -> the tag used in relationship keys (spec 5)
+  minutes_before_open: "{value}m"
+  days_ending_at_open: "{value}d"
+  previous_night: prev_night
+  previous_calendar_day: prev_day
+  previous_evening: prev_evening
+  same_calendar_day: same_day
+  at_open: at_open
+  minutes_around_open: "pm{value}m"
+
+shifted_tags: [same_day, 1d, 2d, 3d]   # counted back from the day before the outcome date for an outcome with exposure_shift_days != 0 (spec 3.1 rule 7)
+evening: {start: "18:00", end: "24:00"}   # the prev_evening window (rulebook spec section 3)
+
+sources:                               # per generic token, only what is not implied by the data
+  meal_events: {label_field: category}                   # the field holding the meal label the State Engine's kind matching reads
+  cgm_glucose_reading: {clean: baseline}                 # cleaned with the Baseline Engine rule (device range and jump rule)
+  step_count_hourly: {span_minutes: 60, available_at: end_of_hour}   # a row is stamped at the hour start and holds that hour's steps (spec 3.1 rule 8)
+
+outcomes:                              # spec 6.1
+  post_meal_peak:
+    unit: meal
+    unit_source: meal_events
+    scope: event_kind
+    forward_minutes: 150
+    value: {primitive: max_after_event, source: cgm_glucose_reading, window_minutes: 150}
+    worse_is: higher
+    outcome_date: opened_date          # for the event meal: the date of the meal
+    exposure_shift_days: 0
+  non_meal_mean:
+    unit: day
+    value: {primitive: mean_outside_event_windows, source: cgm_glucose_reading, event_source: meal_events, gap_minutes: 180}
+    worse_is: higher
+    outcome_date: opened_date
+    exposure_shift_days: 0
+  day_min_glucose:
+    unit: day
+    value: {primitive: min_of_day, source: cgm_glucose_reading}
+    worse_is: lower
+    outcome_date: opened_date
+    exposure_shift_days: 0
+  hr_hour_mean:
+    unit: hour
+    value: {primitive: mean_of_hour, source: continuous_heart_rate}
+    worse_is: higher
+    outcome_date: opened_date
+    exposure_shift_days: 0
+  hr_day_mean:
+    unit: day
+    value: {primitive: mean_of_day, source: continuous_heart_rate}
+    worse_is: higher
+    outcome_date: opened_date
+    exposure_shift_days: 0
+  resting_hr_day:
+    unit: day
+    value: {primitive: dated_record, source: resting_heart_rate, pick_from_config: resting_heart_rate_pick}
+    worse_is: higher
+    outcome_date: opened_date
+    exposure_shift_days: 0
+  sleep_hours_night:
+    unit: day
+    value: {primitive: dated_record, source: sleep_duration, pick: last}
+    worse_is: lower
+    outcome_date: opened_date
+    exposure_shift_days: -1            # the night belongs to the day before: same_day, 1d, 2d, 3d are counted back from the day before
+  missed_doses_day:
+    unit: day
+    value: {primitive: count_matching_by_day, source: medication_adherence, match: {field: text, equals: missed}}
+    worse_is: higher
+    outcome_date: opened_date
+    exposure_shift_days: 0
+  systolic_reading:
+    unit: reading
+    value: {primitive: record_value, source: blood_pressure_systolic}
+    worse_is: higher
+    outcome_date: opened_date
+    exposure_shift_days: 0
+  fluid_intake_day:
+    unit: day
+    value: {primitive: dated_record, source: hydration, pick: last}
+    worse_is: lower
+    outcome_date: opened_date_minus_1  # the daily value arrives at the end of the day; the item opens at 00:00 of the next day
+    exposure_shift_days: 0
+
+exposures:                             # spec 6.2
+  missed_dose:
+    form: binary
+    risk_side: exposed
+    resolution: date
+    value: {primitive: any_in_window, source: medication_adherence, match: {field: text, equals: missed}}
+  sleep_hours:
+    form: continuous
+    risk_side: low
+    resolution: timestamp
+    value: {primitive: value_in_window, source: sleep_duration}
+  strained_period:
+    form: binary
+    risk_side: exposed
+    resolution: block
+    value: {primitive: any_in_window, source: mood_state, match: {field: category, in_ref: baseline.strain_mood_categories}}
+  steps_total:
+    form: continuous
+    risk_side: low
+    resolution: date
+    value: {primitive: value_in_window, source: step_count}
+  steps_window_hourly:
+    form: continuous
+    risk_side: high
+    resolution: timestamp
+    value: {primitive: value_in_window, source: step_count_hourly}      # no fallback to daily steps (spec 4.3)
+  high_steps_day:
+    form: binary
+    risk_side: exposed
+    resolution: date
+    value: {primitive: value_in_window, source: step_count}
+    binarize: {op: at_or_above_quantile, quantile: 0.75}               # her 75th percentile of earlier days, as-of
+  symptom_entry:
+    form: binary
+    risk_side: exposed
+    resolution: timestamp
+    value: {primitive: any_in_window, source: diary_context, match: {field: category, equals: symptom}}
+  alcohol_entry:
+    form: binary
+    risk_side: exposed
+    resolution: timestamp
+    value: {primitive: any_in_window, source: diary_context, match: {field: category, equals: substance_use}}
+  environment_entry:
+    form: binary
+    risk_side: exposed
+    resolution: timestamp
+    value: {primitive: any_in_window, source: diary_context, match: {field: category, equals: environment}}
+  hydration_total:
+    form: continuous
+    risk_side: low
+    resolution: date
+    value: {primitive: value_in_window, source: hydration}
+  screen_hours:
+    form: continuous
+    risk_side: high
+    resolution: date
+    value: {primitive: value_in_window, source: screen_time}
+  late_meal:
+    form: binary
+    risk_side: exposed
+    resolution: timestamp
+    value: {primitive: event_start_minute, source: meal_events, kind: same_as_unit}
+    binarize: {op: at_or_above_quantile, quantile: 0.75}               # start times of her earlier meals of the same kind, as-of
+  late_prior_dinner:
+    form: binary
+    risk_side: exposed
+    resolution: timestamp
+    value: {primitive: event_start_minute, source: meal_events, kind: dinner}
+    binarize: {op: at_or_above_quantile, quantile: 0.75}
+  non_home_day:
+    form: binary
+    risk_side: exposed
+    resolution: date
+    value: {primitive: any_in_window, source: location, match: {field: text, not_in_ref: config.location.home_types}}
+  prior_day_glucose_mean:
+    form: continuous
+    risk_side: high
+    resolution: timestamp
+    value: {primitive: mean_in_window, source: cgm_glucose_reading}
+  clinic_reading:
+    form: binary
+    risk_side: exposed
+    resolution: date
+    value: {primitive: any_in_window, source: location, match: {field: text, in_ref: config.location.clinic_types}}
+
+event_checks:                          # spec 7.3: what each event-level check measures (thresholds are in the patient config)
+  meal_composition: {type: percentile_vs_history, measure: peak_at_elapsed, source: cgm_glucose_reading, unit_source: meal_events, worse: higher}
+  meal_skipped_or_delayed: {type: percentile_vs_history, measure: hours_since_last_event, source: meal_events, worse: higher}
+  sensor_artifact: {type: shape_check, measure: isolated_reading, source: cgm_glucose_reading, window_minutes: 60}
+  dawn_effect: {type: pattern_repeat, measure: rise_in_window, source: cgm_glucose_reading}
+  regimen_factors: {type: pattern_repeat, measure: rate_by_group, source: medication_adherence, group_field: category, strip_regex_ref: baseline.medication_id_regex, match: {field: text, equals: missed}}
+  other_medications: {type: presence_check, facts: other_medications}
+  thyroid_status: {type: presence_check, facts: thyroid_status}
+  hypoglycemic_agent: {type: presence_check, facts: hypoglycemic_agent}
+
+pairs:                                 # Appendix A: one row per rulebook candidate (69), in rulebook order
+  - {rule: glucose_above_post_meal, rank: 1, tier: primary, candidate: meal_composition, check_type: percentile_vs_history, status: event_level, event_check: meal_composition}
+  - {rule: glucose_above_post_meal, rank: 2, tier: secondary, candidate: medication_adherence, check_type: group_comparison, status: runnable, exposure: missed_dose, outcome: post_meal_peak, key: "missed_dose@2d->post_meal_peak:{meal_kind}", ordering: same_day_unverified}
+  - {rule: glucose_above_post_meal, rank: 3, tier: secondary, candidate: sleep, check_type: group_comparison, status: runnable, exposure: sleep_hours, outcome: post_meal_peak, key: "sleep_hours@prev_night->post_meal_peak:{meal_kind}", ordering: ordered}
+  - {rule: glucose_above_post_meal, rank: 4, tier: secondary, candidate: stress_mood, check_type: group_comparison, status: runnable, exposure: strained_period, outcome: post_meal_peak, key: "strained_period@1d->post_meal_peak:{meal_kind}", ordering: ordered}
+  - {rule: glucose_above_post_meal, rank: 5, tier: secondary, candidate: activity, check_type: group_comparison, status: runnable, exposure: steps_total, outcome: post_meal_peak, key: "steps_total@1d->post_meal_peak:{meal_kind}", ordering: same_day_unverified}
+  - {rule: glucose_above_post_meal, rank: 6, tier: secondary, candidate: illness_symptoms, check_type: group_comparison, status: runnable, exposure: symptom_entry, outcome: post_meal_peak, key: "symptom_entry@3d->post_meal_peak:{meal_kind}", ordering: ordered}
+  - {rule: glucose_above_post_meal, rank: 7, tier: secondary, candidate: meal_timing, check_type: group_comparison, status: runnable, exposure: late_meal, outcome: post_meal_peak, key: "late_meal@same_day->post_meal_peak:{meal_kind}", ordering: ordered}
+  - {rule: glucose_above_post_meal, rank: 8, tier: tertiary, candidate: other_medications, check_type: presence_check, status: event_level, event_check: other_medications}
+  - {rule: glucose_above_post_meal, rank: 9, tier: tertiary, candidate: cycle_phase, check_type: group_comparison, status: no_definition, reason: no_stream}
+  - {rule: glucose_above_post_meal, rank: 10, tier: tertiary, candidate: alcohol, check_type: group_comparison, status: runnable, exposure: alcohol_entry, outcome: post_meal_peak, key: "alcohol_entry@1d->post_meal_peak:{meal_kind}", ordering: ordered}
+  - {rule: glucose_above_no_recent_meal, rank: 1, tier: primary, candidate: medication_adherence, check_type: group_comparison, status: runnable, exposure: missed_dose, outcome: non_meal_mean, key: "missed_dose@2d->non_meal_mean", ordering: same_day_unverified}
+  - {rule: glucose_above_no_recent_meal, rank: 2, tier: primary, candidate: illness_symptoms, check_type: group_comparison, status: runnable, exposure: symptom_entry, outcome: non_meal_mean, key: "symptom_entry@3d->non_meal_mean", ordering: same_day_unverified}
+  - {rule: glucose_above_no_recent_meal, rank: 3, tier: secondary, candidate: stress_mood, check_type: group_comparison, status: runnable, exposure: strained_period, outcome: non_meal_mean, key: "strained_period@1d->non_meal_mean", ordering: same_day_unverified}
+  - {rule: glucose_above_no_recent_meal, rank: 4, tier: secondary, candidate: sleep, check_type: group_comparison, status: runnable, exposure: sleep_hours, outcome: non_meal_mean, key: "sleep_hours@prev_night->non_meal_mean", ordering: same_day_unverified}
+  - {rule: glucose_above_no_recent_meal, rank: 5, tier: secondary, candidate: activity, check_type: group_comparison, status: runnable, exposure: steps_total, outcome: non_meal_mean, key: "steps_total@prev_day->non_meal_mean", ordering: ordered}
+  - {rule: glucose_above_no_recent_meal, rank: 6, tier: secondary, candidate: prior_evening_meal, check_type: group_comparison, status: runnable, exposure: late_prior_dinner, outcome: non_meal_mean, key: "late_prior_dinner@prev_evening->non_meal_mean", ordering: ordered}
+  - {rule: glucose_above_no_recent_meal, rank: 7, tier: secondary, candidate: dawn_effect, check_type: pattern_repeat, status: event_level, event_check: dawn_effect}
+  - {rule: glucose_above_no_recent_meal, rank: 8, tier: tertiary, candidate: other_medications, check_type: presence_check, status: event_level, event_check: other_medications}
+  - {rule: glucose_above_no_recent_meal, rank: 9, tier: tertiary, candidate: cycle_phase, check_type: group_comparison, status: no_definition, reason: no_stream}
+  - {rule: glucose_below, rank: 1, tier: primary, candidate: sensor_artifact, check_type: shape_check, status: event_level, event_check: sensor_artifact}
+  - {rule: glucose_below, rank: 2, tier: primary, candidate: meal_skipped_or_delayed, check_type: percentile_vs_history, status: event_level, event_check: meal_skipped_or_delayed}
+  - {rule: glucose_below, rank: 3, tier: secondary, candidate: unusual_activity, check_type: group_comparison, status: runnable, exposure: high_steps_day, outcome: day_min_glucose, key: "high_steps_day@1d->day_min_glucose", ordering: same_day_unverified}
+  - {rule: glucose_below, rank: 4, tier: secondary, candidate: alcohol, check_type: group_comparison, status: runnable, exposure: alcohol_entry, outcome: day_min_glucose, key: "alcohol_entry@720m->day_min_glucose", ordering: ordered}
+  - {rule: glucose_below, rank: 5, tier: secondary, candidate: hypoglycemic_agent, check_type: presence_check, status: event_level, event_check: hypoglycemic_agent}
+  - {rule: glucose_below, rank: 6, tier: tertiary, candidate: illness_poor_intake, check_type: group_comparison, status: runnable, exposure: symptom_entry, outcome: day_min_glucose, key: "symptom_entry@1d->day_min_glucose", ordering: same_day_unverified}
+  - {rule: heart_rate_above, rank: 1, tier: primary, candidate: activity, check_type: group_comparison, status: runnable, exposure: steps_window_hourly, outcome: hr_hour_mean, key: "steps_window_hourly@60m->hr_hour_mean", ordering: ordered}
+  - {rule: heart_rate_above, rank: 2, tier: primary, candidate: stress_mood, check_type: group_comparison, status: runnable, exposure: strained_period, outcome: hr_day_mean, key: "strained_period@same_day->hr_day_mean", ordering: same_day_unverified}
+  - {rule: heart_rate_above, rank: 3, tier: primary, candidate: illness_fever, check_type: group_comparison, status: runnable, exposure: symptom_entry, outcome: hr_day_mean, key: "symptom_entry@3d->hr_day_mean", ordering: same_day_unverified}
+  - {rule: heart_rate_above, rank: 4, tier: secondary, candidate: hydration, check_type: group_comparison, status: runnable, exposure: hydration_total, outcome: hr_day_mean, key: "hydration_total@prev_day->hr_day_mean", ordering: ordered}
+  - {rule: heart_rate_above, rank: 5, tier: secondary, candidate: caffeine_stimulants, check_type: group_comparison, status: no_definition, reason: no_stream}
+  - {rule: heart_rate_above, rank: 6, tier: secondary, candidate: sleep, check_type: group_comparison, status: runnable, exposure: sleep_hours, outcome: hr_day_mean, key: "sleep_hours@prev_night->hr_day_mean", ordering: same_day_unverified}
+  - {rule: heart_rate_above, rank: 7, tier: secondary, candidate: alcohol, check_type: group_comparison, status: runnable, exposure: alcohol_entry, outcome: hr_day_mean, key: "alcohol_entry@720m->hr_day_mean", ordering: ordered}
+  - {rule: heart_rate_above, rank: 8, tier: tertiary, candidate: thyroid_status, check_type: presence_check, status: event_level, event_check: thyroid_status}
+  - {rule: heart_rate_above, rank: 9, tier: tertiary, candidate: meal_digestive, check_type: group_comparison, status: no_definition, reason: no_definition}
+  - {rule: resting_heart_rate_above, rank: 1, tier: primary, candidate: sleep, check_type: group_comparison, status: runnable, exposure: sleep_hours, outcome: resting_hr_day, key: "sleep_hours@prev_night->resting_hr_day", ordering: same_day_unverified}
+  - {rule: resting_heart_rate_above, rank: 2, tier: primary, candidate: illness_fever, check_type: group_comparison, status: runnable, exposure: symptom_entry, outcome: resting_hr_day, key: "symptom_entry@3d->resting_hr_day", ordering: same_day_unverified}
+  - {rule: resting_heart_rate_above, rank: 3, tier: secondary, candidate: stress_mood, check_type: group_comparison, status: runnable, exposure: strained_period, outcome: resting_hr_day, key: "strained_period@prev_day->resting_hr_day", ordering: ordered}
+  - {rule: resting_heart_rate_above, rank: 4, tier: secondary, candidate: hydration, check_type: group_comparison, status: runnable, exposure: hydration_total, outcome: resting_hr_day, key: "hydration_total@prev_day->resting_hr_day", ordering: ordered}
+  - {rule: resting_heart_rate_above, rank: 5, tier: secondary, candidate: alcohol, check_type: group_comparison, status: runnable, exposure: alcohol_entry, outcome: resting_hr_day, key: "alcohol_entry@prev_evening->resting_hr_day", ordering: ordered}
+  - {rule: resting_heart_rate_above, rank: 6, tier: tertiary, candidate: thyroid_status, check_type: presence_check, status: event_level, event_check: thyroid_status}
+  - {rule: resting_heart_rate_above, rank: 7, tier: tertiary, candidate: unusual_activity_prior_day, check_type: group_comparison, status: no_definition, reason: no_definition}
+  - {rule: sleep_below, rank: 1, tier: primary, candidate: stress_mood, check_type: group_comparison, status: runnable, exposure: strained_period, outcome: sleep_hours_night, key: "strained_period@same_day->sleep_hours_night", ordering: ordered}
+  - {rule: sleep_below, rank: 2, tier: secondary, candidate: meal_timing, check_type: group_comparison, status: runnable, exposure: late_prior_dinner, outcome: sleep_hours_night, key: "late_prior_dinner@prev_evening->sleep_hours_night", ordering: ordered}
+  - {rule: sleep_below, rank: 3, tier: secondary, candidate: alcohol_caffeine, check_type: group_comparison, status: runnable, exposure: alcohol_entry, outcome: sleep_hours_night, key: "alcohol_entry@prev_evening->sleep_hours_night", ordering: ordered}
+  - {rule: sleep_below, rank: 4, tier: secondary, candidate: screen_time, check_type: group_comparison, status: runnable, exposure: screen_hours, outcome: sleep_hours_night, key: "screen_hours@prev_evening->sleep_hours_night", ordering: ordered}
+  - {rule: sleep_below, rank: 5, tier: secondary, candidate: illness_symptoms, check_type: group_comparison, status: runnable, exposure: symptom_entry, outcome: sleep_hours_night, key: "symptom_entry@same_day->sleep_hours_night", ordering: ordered}
+  - {rule: sleep_below, rank: 6, tier: tertiary, candidate: travel_environment, check_type: group_comparison, status: runnable, exposure: non_home_day, outcome: sleep_hours_night, key: "non_home_day@same_day->sleep_hours_night", ordering: ordered}
+  - {rule: sleep_below, rank: 7, tier: tertiary, candidate: overnight_glucose, check_type: group_comparison, status: no_definition, reason: shares_the_night_with_the_outcome}
+  - {rule: medication_adherence_below, rank: 1, tier: primary, candidate: routine_disruption, check_type: group_comparison, status: runnable, exposure: non_home_day, outcome: missed_doses_day, key: "non_home_day@same_day->missed_doses_day", ordering: same_day_unverified}
+  - {rule: medication_adherence_below, rank: 2, tier: primary, candidate: stress_mood, check_type: group_comparison, status: runnable, exposure: strained_period, outcome: missed_doses_day, key: "strained_period@same_day->missed_doses_day", ordering: same_day_unverified}
+  - {rule: medication_adherence_below, rank: 3, tier: secondary, candidate: illness_symptoms, check_type: group_comparison, status: runnable, exposure: symptom_entry, outcome: missed_doses_day, key: "symptom_entry@same_day->missed_doses_day", ordering: same_day_unverified}
+  - {rule: medication_adherence_below, rank: 4, tier: secondary, candidate: recent_adherence_pattern, check_type: group_comparison, status: runnable, exposure: missed_dose, outcome: missed_doses_day, key: "missed_dose@7d->missed_doses_day", ordering: excludes_outcome_day}
+  - {rule: medication_adherence_below, rank: 5, tier: secondary, candidate: sleep_prior_night, check_type: group_comparison, status: runnable, exposure: sleep_hours, outcome: missed_doses_day, key: "sleep_hours@prev_night->missed_doses_day", ordering: same_day_unverified}
+  - {rule: medication_adherence_below, rank: 6, tier: tertiary, candidate: regimen_factors, check_type: pattern_repeat, status: event_level, event_check: regimen_factors}
+  - {rule: blood_pressure_above, rank: 1, tier: primary, candidate: medication_adherence, check_type: group_comparison, status: runnable, exposure: missed_dose, outcome: systolic_reading, key: "missed_dose@2d->systolic_reading", ordering: same_day_unverified}
+  - {rule: blood_pressure_above, rank: 2, tier: primary, candidate: measurement_context, check_type: group_comparison, status: runnable, exposure: clinic_reading, outcome: systolic_reading, key: "clinic_reading@at_open->systolic_reading", ordering: same_day_unverified}
+  - {rule: blood_pressure_above, rank: 3, tier: secondary, candidate: stress_mood, check_type: group_comparison, status: runnable, exposure: strained_period, outcome: systolic_reading, key: "strained_period@same_day->systolic_reading", ordering: no_ordered_exposure}
+  - {rule: blood_pressure_above, rank: 4, tier: secondary, candidate: sleep, check_type: group_comparison, status: runnable, exposure: sleep_hours, outcome: systolic_reading, key: "sleep_hours@prev_night->systolic_reading", ordering: ordered}
+  - {rule: blood_pressure_above, rank: 5, tier: secondary, candidate: salt_in_meals, check_type: group_comparison, status: no_definition, reason: no_definition}
+  - {rule: blood_pressure_above, rank: 6, tier: tertiary, candidate: alcohol_caffeine, check_type: group_comparison, status: runnable, exposure: alcohol_entry, outcome: systolic_reading, key: "alcohol_entry@720m->systolic_reading", ordering: ordered}
+  - {rule: blood_pressure_above, rank: 7, tier: tertiary, candidate: pain_or_illness, check_type: group_comparison, status: runnable, exposure: symptom_entry, outcome: systolic_reading, key: "symptom_entry@same_day->systolic_reading", ordering: ordered}
+  - {rule: blood_pressure_above, rank: 8, tier: tertiary, candidate: other_medications, check_type: presence_check, status: event_level, event_check: other_medications}
+  - {rule: hydration_below, rank: 1, tier: primary, candidate: illness_symptoms, check_type: group_comparison, status: runnable, exposure: symptom_entry, outcome: fluid_intake_day, key: "symptom_entry@same_day->fluid_intake_day", ordering: same_day_unverified}
+  - {rule: hydration_below, rank: 2, tier: primary, candidate: busy_routine, check_type: group_comparison, status: runnable, exposure: non_home_day, outcome: fluid_intake_day, key: "non_home_day@same_day->fluid_intake_day", ordering: same_day_unverified}
+  - {rule: hydration_below, rank: 3, tier: secondary, candidate: high_prior_glucose, check_type: group_comparison, status: runnable, exposure: prior_day_glucose_mean, outcome: fluid_intake_day, key: "prior_day_glucose_mean@prev_day->fluid_intake_day", ordering: ordered}
+  - {rule: hydration_below, rank: 4, tier: secondary, candidate: weather_environment, check_type: group_comparison, status: runnable, exposure: environment_entry, outcome: fluid_intake_day, key: "environment_entry@same_day->fluid_intake_day", ordering: same_day_unverified}
+  - {rule: hydration_below, rank: 5, tier: tertiary, candidate: alcohol, check_type: group_comparison, status: runnable, exposure: alcohol_entry, outcome: fluid_intake_day, key: "alcohol_entry@prev_evening->fluid_intake_day", ordering: ordered}
+  - {rule: screen_time_above, rank: 1, tier: secondary, candidate: workload_events, check_type: group_comparison, status: rule_deferred}
+  - {rule: screen_time_above, rank: 2, tier: secondary, candidate: illness_bedrest, check_type: group_comparison, status: rule_deferred}

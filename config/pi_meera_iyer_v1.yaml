@@ -1,0 +1,39 @@
+# PI config for meera_iyer_v1 (spec: task/pi_spec.md section 10 and Amendments). The patient's timezone comes from the Baseline Engine config named below. PI writes only its own
+# database (`db_path`); every other path is opened read-only. All lifecycle values are placeholders from the spec: do not tune them to produce statuses.
+pi:
+  method_version: pi-v0
+  baseline_config: config/patient_meera_iyer_v1.yaml
+  evidence_library: config/evidence_library_v0.yaml
+  phrasebook: config/findings_phrasebook_v0.yaml
+  paths:
+    findings_db: output/findings_engine.db
+    evidence_db: output/evidence_engine.db
+    db_path: output/pi.db
+  week: {start_day: monday, close_at: "23:59:59", partial_week: {min_days: 4, scale_threshold: true}}
+  week_label: {days_needed: 5, of: 7}
+  lifecycle:
+    promote_after_weeks: 2
+    weaken_after_weeks: 2
+    retract_after_weeks: 6
+    retract_on_contrary: {days_per_week: 5, weeks: 4}
+    repromote_after_weeks: 2
+    placebo_fired_max_share: 0.5
+    backfill_on_create: true
+  seen_before_bands: {this_week_days: 7, recent_weeks_days: 28}
+  text:                                 # the text layer (stage P2, prompt pp-v3); with enabled false every memory carries the code text (P1)
+    enabled: true
+    model: "openai/gpt-5-mini"
+    reasoning_effort: low
+    timeout_seconds: 90
+    sdk_retries: 0
+    retries: 1
+    max_words: 25                       # the situations line: one sentence of at most 25 words
+    diary_ref_prefix: d                 # the situations line is built only from sentences whose refs all start with this (the diary items d1, d2, ...)
+    concurrency: 6
+    regenerate_every_weeks: 4
+    cache: true
+  replay: {mode: full}                  # full | code_only: which Findings text each entry carries (the final F2 text, or the code line)
+  text_sample:                          # the P2 sample (run_text --sample): required kinds first, then seeded picks across weeks
+    n_total: 25
+    chain_length: 3                     # consecutive versions of one memory run in order, so a later one sees the previous line
+    weakened_key: "steps_window_hourly@60m->hr_hour_mean"

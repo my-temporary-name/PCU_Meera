@@ -1,0 +1,7 @@
+# The loop (stage L1, code layer only): Findings runs live in time order with PI and reads PI as-of. It writes only its own two NEW databases; the F1 / F2 / P1 outputs
+# (findings_engine.db, pi.db) and every upstream database are never written. The seen_before bands and the PI reads (recent sealed weeks, open week) come from the two configs named here.
+loop:
+  findings_config: config/findings_meera_iyer_v1.yaml
+  pi_config: config/pi_meera_iyer_v1.yaml
+  paths: {findings_db: output/findings_loop.db, pi_db: output/pi_loop.db}
+  pi_state_words: {candidate: early, supported: repeated, weakened: fading}      # the state word of an earlier conclusion in the view; a retracted memory has none, so no conclusion is shown for it

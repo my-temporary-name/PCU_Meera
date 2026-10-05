@@ -1,0 +1,47 @@
+# Findings Engine config for meera_iyer_v1 (spec: task/findings_engine_spec.md section 10 and Amendments). The patient's timezone and the diary severity keywords come from the
+# Baseline Engine config named below. The phrase book (position bands, strength words, windows, class templates) is the shared file named below, checked at load.
+findings:
+  method_version: fe-v0
+  baseline_config: config/patient_meera_iyer_v1.yaml
+  evidence_library: config/evidence_library_v0.yaml
+  phrasebook: config/findings_phrasebook_v0.yaml
+  paths:                              # every database is opened read-only except `db_path`, which is the Findings Engine's own
+    state_db: output/state_engine.db
+    rulebook_db: output/rulebook_lookup.db
+    evidence_db: output/evidence_engine.db
+    store_db: output/personal_data_store.db
+    db_path: output/findings_engine.db
+  case: {gap_hours: 6, max_span_hours: 36}
+  diary: {stream: diary_context, max_entries: 6, start: previous_local_day, id_field: id, note_field: note, priority_up_to: moderate, library_source: diary_context, backing_per_point: 3}      # moderate or worse first, then the most recent
+  state_memory:
+    use: [yesterday_day, last_week, latest_month]
+    windows: {yesterday_day: "day_{date}", last_week: "week_ENDING_{date}", latest_month: {tier: month}}
+    skip_statuses: [code_line_early]
+    view: {use: [yesterday_day], notable_only: true}      # the text layer's view gets only yesterday's day summary, and only if that window is notable; week and month stay in the code layer
+  pi: {mid_term_recent_weeks: 2, include_open_week: true}             # used from stage P1
+  seen_before_bands: {this_week_days: 7, recent_weeks_days: 28}       # used from stage P1
+  part_of_day: {night: [0, 5], morning: [5, 12], afternoon: [12, 18], evening: [18, 24]}      # used by the text layer (F2)
+  text:                               # stage F2: the text layer (the only place a model is called); one version per call
+    enabled: true
+    model: "openai/gpt-5-mini"        # through OpenRouter; the key is read from the environment and never printed
+    reasoning_effort: low
+    timeout_seconds: 90
+    sdk_retries: 0
+    retries: 1                        # one retry with the failed checks appended, then the code line
+    concurrency: 6
+    headline_max_words: 20
+    sentences: {min: 2, max: 8}
+    copy_words: 7                     # check 5: no run of this many words from a diary entry
+    cache: true
+    wave: 12                          # versions per wave of the full run; each wave is saved before the next starts
+    stop: {after: 40, max_first_failure: 0.45, max_call_errors: 0.10}      # checked once, after the first 40 new versions of a full run
+  text_sample:                        # the stage F2 sample (run_text --sample): fixed picks, then seeded ones
+    named_cases: ["case_2026-09-17T21:45:00+05:30", "case_2025-11-18T08:17:00+05:30"]      # every version
+    monthly: ["fnd_case_2025-10-19T07:00:00+05:30_v3", "fnd_case_2025-11-17T21:00:00+05:30_v3", "fnd_case_2025-12-25T13:15:00+05:30_v3", "fnd_case_2026-01-13T09:15:00+05:30_v2",
+              "fnd_case_2026-02-07T11:15:00+05:30_v4", "fnd_case_2026-03-14T01:00:00+05:30_v3", "fnd_case_2026-04-02T19:15:00+05:30_v2", "fnd_case_2026-06-12T22:30:00+05:30_v1",
+              "fnd_case_2026-07-08T23:45:00+05:30_v1", "fnd_case_2026-09-12T06:15:00+05:30_v3"]
+    rare: ["fnd_case_2026-01-01T20:15:00+05:30_v1", "fnd_case_2026-02-13T16:45:00+05:30_v2", "fnd_case_2026-02-17T18:30:00+05:30_v2", "fnd_case_2025-11-08T11:00:00+05:30_v2"]
+    artifact: "fnd_case_2026-03-22T11:00:00+05:30_v2"
+    early_before: "2025-12-10"
+    n_early: 3
+    n_seeded: 10

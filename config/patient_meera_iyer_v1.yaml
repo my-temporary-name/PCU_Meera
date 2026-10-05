@@ -1,0 +1,107 @@
+# Baseline Engine v2 — per-patient config (spec: task/baselineV2.md §2).
+# Everything patient-specific lives here. Add a stream by adding a row, not code.
+patient:
+  id: meera_iyer_v1
+  timezone: "Asia/Kolkata"       # all windowing happens in this zone
+  pronoun: "she"                 # she | he | they
+  strain_mood_categories: [tired_low_energy, mild_stress, anxious, overwhelmed_high_distress]
+  mood_distress_order: [positive_uplifted, calm_stable, mild_stress, tired_low_energy, anxious, overwhelmed_high_distress]   # lowest to highest distress; ranks a day's "worst mood"
+  medication_id_regex: "^med_\\d+_"   # stripped from medicine ids to get the name ("med_002_metformin" -> "metformin")
+history:
+  min_days_for_compare: 14       # history needed (strictly before the window) for a flat band / usual status / direction tag
+  reliable_completeness_pct: 70
+glucose:
+  device_range: [40, 400]        # readings outside are removed as questionable
+  max_step_change_per_15min: 75  # larger jumps (scaled by the gap in 15-minute units) are removed as questionable
+  expected_per_day: 96           # 15-minute cadence
+  gap_hours_flag: 1.0            # a gap between kept readings longer than this is flagged gap_hours:<n>
+  lab_biomarker: hba1c           # compared with the glucose-based estimate (GMI) over the 90 days before the lab
+streams:                          # one row per stream
+  # agg = how a day's value is computed (generic aggregators in code); source = where the readings live
+  - {name: cgm_glucose_reading,   domain: glucose,    kind: continuous, label: average glucose,           unit: mg/dL,                       agg: glucose_mean,    source: raw,           expected_per_day: 96}
+  - {name: time_in_range,         domain: glucose,    kind: derived,    label: time in range,             unit: percentage points,           agg: glucose_tir_pct}
+  - {name: variability,           domain: glucose,    kind: derived,    label: variability,               unit: percentage points,           agg: glucose_cv_pct}
+  - {name: sleep_duration,        domain: sleep,      kind: daily,      label: sleep,                     unit: hours,                       agg: value,           source: raw,           expected_per_day: 1}
+  - {name: step_count,            domain: activity,   kind: hourly,     label: steps,                     unit: steps,                       agg: value,           source: raw,           expected_per_day: 1}
+  - {name: sedentary_time,        domain: activity,   kind: daily,      label: sedentary time,            unit: minutes,                     agg: value,           source: raw,           expected_per_day: 1}
+  - {name: continuous_heart_rate, domain: heart_rate, kind: continuous, label: heart rate,                unit: bpm,                         agg: mean,            source: context_num,   expected_per_day: 96}
+  - {name: resting_heart_rate,    domain: heart_rate, kind: daily,      label: resting heart rate,        unit: bpm,                         agg: value,           source: raw,           expected_per_day: 1}
+  - {name: medication_adherence,  domain: adherence,  kind: event,      label: medication adherence,     unit: percentage points,           agg: adherence_pct,   source: context}
+  - {name: mood_state,            domain: mood,       kind: categorical,label: strained periods of the day, unit: "",                          agg: strained_count,  source: context,       expected_per_day: 3, count_like: true}
+  - {name: hydration,             domain: lifestyle,  kind: daily,      label: hydration,                 unit: mL,                          agg: value,           source: raw,           expected_per_day: 1}
+  - {name: screen_time,           domain: lifestyle,  kind: daily,      label: screen time,               unit: hours,                       agg: value,           source: raw,           expected_per_day: 1}
+  - {name: post_meal_peak,        domain: meals,      kind: derived,    label: post-meal glucose peak,    unit: mg/dL,                       agg: post_meal_peak}
+  # blood_pressure: readings are listed in the facts only; no deviation logic in this version
+status_streams:                   # streams judged reading by reading at WINDOW level (several readings per window); a reading takes the worse status of its components
+  - {name: blood_pressure, label: blood pressure, components: [systolic, diastolic], facts_key: blood_pressure}
+diary:
+  severity_order: [severe, moderate, mild]   # keywords searched in a diary entry's severity note, most to least severe; a note with none of them is unranked
+  month_min_severity: moderate               # the month tier lists entries at this severity or worse ...
+  month_max_listed: 8                        # ... up to this many; the rest are counted by category
+rendering:
+  whole_number_units: [steps, mL, minutes]   # shown as whole numbers in rendered text
+min_material_status: abnormal     # the lowest threshold status that can be a material deviation: abnormal (low/high) | borderline (also borderline_low/high)
+windows:
+  week_days: 7                   # rolling trailing window, computed for every day
+  month_every_days: 30           # cumulative checkpoint every N days (plus a final partial one for the latest data); its "last N days" window is compared with the previous checkpoint
+  min_days_in_window: 4          # days with data needed for a window-level mean to count
+chronic:
+  min_share_pct: 50              # month tier: a stream non-normal on at least this share of days so far is a chronic finding
+flat_band:
+  sd_multiplier: 0.5             # flat band = this x SD of the stream's daily values before the window
+size_labels:
+  small_below: 2                 # multiples of the flat band: 1x to <2x = small, 2x to <4x = moderate, 4x or more = large
+  moderate_below: 4
+anchors:                          # evaluated on CLEANED values; starting heuristics, not clinical standards
+  glucose_TIR_change_points: {day: 10, week: 10, month: 10}
+  glucose_CV_change_points:  {day: 8,  week: 8,  month: 8}
+  glucose_GMI_change:        {week: 0.3, month: 0.2}
+  severe_range_appeared_or_cleared: true
+  sleep_hours_change:        {day: 1.5, week: 1.5, month: 1.5}
+  resting_hr_change_bpm:     {day: 8, week: 8, month: 8}
+  adherence_meds_changed:    {day: "min(2, n_meds)"}
+  adherence_pct_change:      {week: 15, month: 10}
+  steps_abs_change:          {day: 3000, week_mean: 1500}
+  lab_cgm_discordance:       {month: 0.5}   # |lab HbA1c - GMI over prior 90 days|
+gist:
+  model: "openai/gpt-5-mini"
+  reasoning_effort: "low"
+  timeout_seconds: 90
+  sdk_retries: 0
+  concurrency: 6
+  batch_size: {day: 4, week: 2, month: 1}
+  usual_place_count: 2           # the gist view names where she was only when it is not one of her N most frequent places (judged from the days before the window)
+  anchor_size_floor: moderate    # a measure that crossed an anchor is WORDED at least this size (the stored tag is unchanged)
+  sentence_direction: strict     # strict | warn: warn turns sentence-level direction failures into counted warnings (the headline stays strict); the full run switches to it if fallbacks exceed 10%
+  wave_windows: {day: 20, week: 12, month: 6}   # windows per wave in the full run: stop rules and the checkpoint are evaluated between waves
+  measure_names:                 # how the gist view names each measure (default: the stream's label)
+    cgm_glucose_reading: average glucose
+    time_in_range: time in range
+    variability: glucose variability
+    sleep_duration: sleep
+    step_count: steps
+    sedentary_time: sedentary time
+    continuous_heart_rate: heart rate
+    resting_heart_rate: resting heart rate
+    medication_adherence: medication adherence
+    mood_state: strained periods of the day
+    hydration: hydration
+    screen_time: screen time
+    post_meal_peak: post-meal glucose peak
+  unchecked_measures:            # named things the output check recognises but never compares with a direction tag (the month lab line); key -> phrase
+    lab_test: "HbA1c"
+    glucose_estimate: "the glucose-based estimate"
+  measure_aliases:               # other phrases the output check treats as the same measure (the longest phrase wins, so "glucose variability" is never "glucose"); ambiguous words (blood sugar, activity, stress) are deliberately NOT aliases
+    cgm_glucose_reading: [glucose, estimated glucose]
+    time_in_range: [time in target range]
+    variability: [variability, glucose swings]
+    sleep_duration: [sleep duration, hours of sleep]
+    step_count: [step count]
+    sedentary_time: [sitting time]
+    continuous_heart_rate: [pulse]
+    resting_heart_rate: [resting pulse]
+    medication_adherence: [adherence, doses taken]
+    mood_state: [strained periods, stressed periods]
+    hydration: [water intake, fluid intake]
+    post_meal_peak: [post-meal peak, glucose peak after meals]
+  week_gist_weekday: none        # none = every non-early, non-quiet week is queued for a gist; a weekday name = only those weeks (and any week with an anchor crossed)

@@ -1,0 +1,40 @@
+# Rulebook Lookup config (spec: task/rulebook_lookup_spec.md section 4.3, with the Amendments on top). Everything patient-specific lives here.
+# The patient time zone and the medicine-id pattern are read from the Baseline Engine config named below (the same setting the State Engine uses).
+rulebook:
+  baseline_config: config/patient_meera_iyer_v1.yaml
+  rulebook_dir: task/evidence_engine            # rulebook_v0_rules.csv, rulebook_v0_candidates.csv, rulebook_v0.md (never edited by the engine)
+  rules_file: rulebook_v0_rules.csv
+  candidates_file: rulebook_v0_candidates.csv
+  sources_file: rulebook_v0.md                  # the S1..S20 source list is read from its table
+  state_db: output/state_engine.db              # read-only: the hand-offs
+  db_path: output/rulebook_lookup.db            # the packet log (replaced by packet_id on a re-run; wiped only with --rebuild)
+  report_path: output/rulebook_lookup_report.md
+  raised_bar_above: 4                           # more selected candidates than this -> evidence_bar_hint = raised
+  stream_map:                                   # generic token -> this patient's stream name; null = not available
+    meal_events: meal_events
+    food_content: meal_events                   # the food description is stored in meal_events (no separate stream in the store)
+    medication_adherence: medication_adherence
+    medication_list: "derived:medication_classes"   # available if medication_classes is non-empty
+    sleep_duration: sleep_duration
+    step_count: step_count
+    step_count_hourly: step_count_hourly        # ingest-only context stream (config/ingest_streams.yaml, used_by: [rulebook]); 12 days have no hourly rows: data presence is Evidence Engine's concern
+    mood_state: mood_state
+    diary_context: diary_context
+    hydration: hydration
+    screen_time: screen_time
+    location: location
+    cgm_glucose_reading: cgm_glucose_reading
+    time_of_day: derived                        # always available; comes from timestamps
+    menstrual_cycle: null                       # the cycle file exists (final/) but is not in the store (parked). NOTE: it carries menopause_status = peri,
+                                                # and the evidence for the cycle_phase candidate is not established for that case.
+    caffeine_intake: null                       # no data anywhere
+    lab_tsh: null                               # TSH rows exist in the lab file but are not in the store (parked)
+  medication_classes:                           # medicine name (as the Baseline config extracts it) -> classes; the keys ARE the patient's medicines
+    metformin: [glucose_lowering]
+    amlodipine: [antihypertensive]
+    levothyroxine: [thyroid]
+  patient_flags:                                # explicit flags that cannot be derived from medicines (an explicit flag wins over a derived one)
+    has_thyroid_condition: true                 # ASSERTED from the persona document, not derived from data (no condition list exists in the data)
+  derived_flags:                                # flag -> the medication class that makes it true
+    takes_glucose_lowering_medication: glucose_lowering
+    takes_bp_medication: antihypertensive

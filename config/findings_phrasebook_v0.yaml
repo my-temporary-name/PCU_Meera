@@ -1,0 +1,124 @@
+# Findings Engine / PI phrase book (spec: task/findings_engine_spec.md Appendix A and Amendments; reviewed in docs/findings_pi_step1_report.md).
+# Patient-independent and shared by both components. It is checked at load against the Evidence library: every exposure, outcome, window tag and event-level
+# candidate must have a phrase, every wording class a clause template. Phrases contain no digits and no counting words; a window phrase that includes the outcome's
+# own date contains "same day".
+version: pb-v0
+
+windows:
+  same_day:     "on the same day"
+  1d:           "on the same day"
+  2d:           "on the same day or the day before"
+  3d:           "on the same day or in the days before"
+  7d:           "in the week before"
+  prev_night:   "the night before"
+  prev_day:     "the day before"
+  prev_evening: "the evening before"
+  60m:          "in the hour before"
+  720m:         "in the hours before"
+  at_open:      "at that reading"
+
+exposures:                       # phrase may contain {window}; number drives has/have; pending = what is "not known yet"
+  missed_dose:            {phrase: "missed doses {window}",                         number: plural,   pending: "the day's medicine record"}
+  sleep_hours:            {phrase: "short sleep {window}",                          number: singular, pending: "last night's sleep"}
+  strained_period:        {phrase: "a stressed or low-mood period {window}",        number: singular, pending: "the day's mood record"}
+  steps_total:            {phrase: "low activity {window}",                         number: singular, pending: "the day's step total"}
+  steps_window_hourly:    {phrase: "more activity in the hour before",              number: singular, pending: "the last hour's activity"}
+  high_steps_day:         {phrase: "a very active day",                             number: singular, pending: "the day's step total"}
+  symptom_entry:          {phrase: "a symptom noted in the diary {window}",         number: singular, pending: "the rest of the day's diary"}
+  alcohol_entry:          {phrase: "alcohol noted in the diary {window}",           number: singular, pending: "the rest of the day's diary"}
+  environment_entry:      {phrase: "a weather or environment note {window}",        number: singular, pending: "the rest of the day's diary"}
+  hydration_total:        {phrase: "low fluid intake {window}",                     number: singular, pending: "the day's fluid total"}
+  screen_hours:           {phrase: "long screen time {window}",                     number: singular, pending: "the day's screen time"}
+  late_meal:              {phrase: "a late meal",                                   number: singular, pending: "the meal time"}
+  late_prior_dinner:      {phrase: "a late dinner the evening before",              number: singular, pending: "the evening before's dinner time"}
+  non_home_day:           {phrase: "a day away from home",                          number: singular, pending: "where she was that day"}
+  prior_day_glucose_mean: {phrase: "higher glucose the day before",                 number: singular, pending: "the day before's glucose"}
+  clinic_reading:         {phrase: "a reading taken at a clinic",                   number: singular, pending: "where the reading was taken"}
+
+outcomes:                        # phrase follows "tended to move together with"; contrary is the whole clause of the `contrary_note` class
+  post_meal_peak:    {phrase: "higher glucose peaks after {kind}", contrary: "her glucose peaks after {kind} have tended to be lower"}
+  non_meal_mean:     {phrase: "higher glucose between meals",      contrary: "her glucose between meals has tended to be lower"}
+  day_min_glucose:   {phrase: "a lower lowest glucose that day",   contrary: "her lowest glucose that day has tended to be higher"}
+  hr_hour_mean:      {phrase: "higher heart rate in that hour",    contrary: "her heart rate in that hour has tended to be lower"}
+  hr_day_mean:       {phrase: "higher heart rate over the day",    contrary: "her heart rate over the day has tended to be lower"}
+  resting_hr_day:    {phrase: "a higher resting heart rate",       contrary: "her resting heart rate has tended to be lower"}
+  sleep_hours_night: {phrase: "shorter sleep that night",          contrary: "her sleep that night has tended to be longer"}
+  missed_doses_day:  {phrase: "more missed doses that day",        contrary: "her missed doses that day have tended to be fewer"}
+  systolic_reading:  {phrase: "higher blood pressure readings",    contrary: "her blood pressure readings have tended to be lower"}
+  fluid_intake_day:  {phrase: "lower fluid intake that day",       contrary: "her fluid intake that day has tended to be higher"}
+
+event_checks:                    # static: a presence check (a standing fact, kept in the structured layer, left out of the code line and the text view); position_suffix may contain {elapsed} and {kind}; {kind}s is the plural ("dinners")
+  meal_composition:        {phrase: "the size of this meal's rise",           position_suffix: "within the {elapsed} after {kind}s"}
+  meal_skipped_or_delayed: {phrase: "the time since the last meal",           position_suffix: "at this time of day"}
+  sensor_artifact:         {phrase: "a possible sensor artifact", pending: "the readings that follow"}
+  dawn_effect:             {phrase: "an early-morning rise"}
+  regimen_factors:         {phrase: "which medicine is missed most"}
+  other_medications:       {phrase: "other medicines she takes", static: true}
+  thyroid_status:          {phrase: "her thyroid medicine", static: true}
+  hypoglycemic_agent:      {phrase: "insulin or a similar medicine", static: true}
+
+classes:                         # one clause template per wording class (the load check requires all of them)
+  asserted:              "{Exposure} {has} tended to move together with {outcome} in her history."
+  asserted_same_day:     "{Exposure} {has} tended to move together with {outcome} in her history{same_day}."
+  hedged:                "{Exposure} may be linked to {outcome} in her history."
+  hedged_same_day:       "{Exposure} may be linked to {outcome} in her history{same_day}."
+  exposure_only:         "{exposure}"
+  exposure_only_history: "{exposure}"
+  contrary_note:         "On days with {exposure}, {contrary}."
+  event_unusual:         "{Event} was {position}."
+  artifact_note:         "This reading may be a sensor artifact."
+  not_known_yet:         "{pending}"
+  not_mentioned:         ""
+
+elapsed_words:                   # minutes since the meal (the percentile's bucket) -> words
+  - {up_to: 45,    words: "half hour or so"}
+  - {up_to: 90,    words: "hour or so"}
+  - {up_to: 99999, words: "couple of hours"}
+
+meal_ago_words:                  # minutes since the last meal -> words
+  - {up_to: 30,    words: "a short while earlier"}
+  - {up_to: 90,    words: "about an hour earlier"}
+  - {up_to: 150,   words: "a couple of hours earlier"}
+  - {up_to: 99999, words: "a few hours earlier"}
+
+measures:                        # hand-off measure -> one clause per direction, with a {strength} slot ("clearly" / "far"); used by the view and the code line
+  glucose:              {above: "glucose was {strength} above her usual",                 below: "glucose was {strength} below her usual"}
+  heart_rate:           {above: "heart rate was {strength} above her usual",              below: "heart rate was {strength} below her usual"}
+  resting_heart_rate:   {above: "resting heart rate was {strength} above her usual",      below: "resting heart rate was {strength} below her usual"}
+  sleep_duration:       {above: "she slept {strength} more than usual",                   below: "she slept {strength} less than usual"}
+  medication_adherence: {above: "{strength} more doses were taken than usual",            below: "{strength} fewer doses were taken than usual"}
+  blood_pressure:       {above: "blood pressure was {strength} above her usual",         below: "blood pressure was {strength} below her usual"}
+  hydration:            {above: "{strength} more fluid was taken than usual",             below: "{strength} less fluid was taken than usual"}
+  screen_time:          {above: "she spent {strength} more time on screens than usual",  below: "she spent {strength} less time on screens than usual"}
+
+kind_fallback: meal            # the noun for an event whose kind is not known ("after meals")
+
+strength_words: {clearly: "clearly", far: "far"}
+
+position_bands:                  # percentile bands: lower edge inclusive, upper exclusive, the last band closed at 100
+  low_side:  [[0, 5, "among the very lowest she has had"], [5, 25, "low for her"]]
+  high_side: [[95, 100, "among the very highest she has had"], [75, 95, "high for her"]]
+
+internal_words: [evidence, label, relationship, factor, supported, suggestive, statistic, case, engine, memory, hand-off, group, class, exposure, exposures, entangled, bundle, pair, points]   # check 5, the prompt, and the phrases themselves
+counting_words: [one, two, once, twice, first, second, several]
+
+code_line:                       # the fixed sentences of the code line (Appendix C); {list} is a joined list of phrases
+  present:        "Present: {list}."
+  also_present:   "Also present, with no link claimed: {list}."
+  not_known_yet:  "Not known yet: {list}."
+  history_short:  "There is not enough history yet to say what usually goes with this."
+  entangled:      "{List} often occur together, so their separate roles cannot be told apart."
+  co_exposed:     "{List} were both present."
+  co_exposed_many: "{List} were all present."
+
+clinical_terms:                  # check 11: a sentence may use one of these only if the view's own text has it (a medicine, a condition or a diagnosis the model must not bring in)
+  [insulin, hypoglycemia, hypoglycaemia, hypoglycemic, hypoglycaemic, hyperglycemia, hyperglycaemia, hyperglycemic, hyperglycaemic, infection, infected, diagnosis, diagnosed, diagnose,
+   diabetes, diabetic, ketoacidosis, sepsis, hypertension, hypotension, antibiotic, steroid]
+
+pi_text:                         # PI's code text, one template per status (pi_spec.md 8.5); {Exposure}/{outcome} are phrases above, {has} has/have, {same_day} ", on the same day" when needed
+  candidate: "{Exposure} may be linked to {outcome} in her history{same_day}. This is an early observation."
+  supported: "{Exposure} {has} repeatedly moved together with {outcome} in her history{same_day}."
+  weakened:  "{Exposure} and {outcome} are no longer clearly seen together in her history{same_day}."
+  retracted: "This link, once suspected, is no longer supported by her history."
+
+pi_internal_extra: [status]      # internal words that only PI's text layer forbids (pi_spec.md 8.4 check 4); the Findings list above is shared and unchanged

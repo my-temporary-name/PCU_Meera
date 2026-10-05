@@ -1,0 +1,321 @@
+{
+  "packet_id": "packet_handoff_glucose_2026-09-17T22:30",
+  "handoff_id": "handoff_glucose_2026-09-17T22:30",
+  "rulebook_version": "v0-draft-1",
+  "rulebook_review_status": "unreviewed",
+  "matched_rule": {
+    "rule_id": "glucose_above_post_meal",
+    "status": "active",
+    "context_match": "last_meal_minutes_ago<=180",
+    "budget": {
+      "primary": "all",
+      "primary_count": 1,
+      "secondary_max": 5,
+      "tertiary_max": 2,
+      "max_total": 8
+    },
+    "review_status": "unreviewed"
+  },
+  "handoff_summary": {
+    "measure": "glucose",
+    "direction": "above",
+    "size": "clearly",
+    "trigger": "persistence",
+    "position_z": 2.21,
+    "usual_basis": "meal_relative",
+    "value": 185.0,
+    "clinical_status": "high",
+    "opened_at": "2026-09-17T22:30:00+05:30",
+    "last_meal_minutes_ago": 62
+  },
+  "selected": [
+    {
+      "rank": 1,
+      "weight_tier": "primary",
+      "candidate": "meal_composition",
+      "check_type": "percentile_vs_history",
+      "check_text": "this meal's response vs her earlier meals of the same kind",
+      "outcome_compared_text": "peak glucose within 150 min of the meal",
+      "streams": [
+        {
+          "generic": "meal_events",
+          "patient_stream": "meal_events",
+          "category": null,
+          "available": true,
+          "used": true
+        },
+        {
+          "generic": "food_content",
+          "patient_stream": "meal_events",
+          "category": null,
+          "available": true,
+          "used": true
+        }
+      ],
+      "lookback": {
+        "kind": "minutes_before_open",
+        "value": 240,
+        "text": "240 minutes"
+      },
+      "resolved_window": {
+        "start": "2026-09-17T18:30:00+05:30",
+        "end": "2026-09-17T22:30:00+05:30",
+        "includes_after_open": false
+      },
+      "evidence_level": "A",
+      "sources": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "data_status_code": "available",
+      "review_status": "unreviewed",
+      "note": "Food and carbohydrate load are the first-listed causes of highs."
+    },
+    {
+      "rank": 2,
+      "weight_tier": "secondary",
+      "candidate": "medication_adherence",
+      "check_type": "group_comparison",
+      "check_text": "evenings after a missed dose vs evenings with all doses taken",
+      "outcome_compared_text": "post-meal peak",
+      "streams": [
+        {
+          "generic": "medication_adherence",
+          "patient_stream": "medication_adherence",
+          "category": null,
+          "available": true,
+          "used": true
+        }
+      ],
+      "lookback": {
+        "kind": "days_ending_at_open",
+        "value": 2,
+        "text": "2 days"
+      },
+      "resolved_window": {
+        "start": "2026-09-16T00:00:00+05:30",
+        "end": "2026-09-17T22:30:00+05:30",
+        "includes_after_open": false
+      },
+      "evidence_level": "A",
+      "sources": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "data_status_code": "available",
+      "review_status": "unreviewed",
+      "note": null
+    },
+    {
+      "rank": 3,
+      "weight_tier": "secondary",
+      "candidate": "sleep",
+      "check_type": "group_comparison",
+      "check_text": "days after short sleep vs normal sleep",
+      "outcome_compared_text": "post-meal peak",
+      "streams": [
+        {
+          "generic": "sleep_duration",
+          "patient_stream": "sleep_duration",
+          "category": null,
+          "available": true,
+          "used": true
+        }
+      ],
+      "lookback": {
+        "kind": "previous_night",
+        "value": null,
+        "text": "previous night"
+      },
+      "resolved_window": {
+        "record": "latest_sleep_record_at_or_before_open",
+        "includes_after_open": false
+      },
+      "evidence_level": "A",
+      "sources": [
+        "S2",
+        "S3"
+      ],
+      "data_status_code": "available",
+      "review_status": "unreviewed",
+      "note": "Poor or short sleep is listed as a cause of highs."
+    },
+    {
+      "rank": 4,
+      "weight_tier": "secondary",
+      "candidate": "stress_mood",
+      "check_type": "group_comparison",
+      "check_text": "strained days vs calm days",
+      "outcome_compared_text": "post-meal peak",
+      "streams": [
+        {
+          "generic": "mood_state",
+          "patient_stream": "mood_state",
+          "category": null,
+          "available": true,
+          "used": true
+        },
+        {
+          "generic": "diary_context",
+          "patient_stream": "diary_context",
+          "category": null,
+          "available": true,
+          "used": true
+        }
+      ],
+      "lookback": {
+        "kind": "days_ending_at_open",
+        "value": 1,
+        "text": "1 day"
+      },
+      "resolved_window": {
+        "start": "2026-09-17T00:00:00+05:30",
+        "end": "2026-09-17T22:30:00+05:30",
+        "includes_after_open": false
+      },
+      "evidence_level": "A",
+      "sources": [
+        "S1",
+        "S2",
+        "S3"
+      ],
+      "data_status_code": "available",
+      "review_status": "unreviewed",
+      "note": "Stress hormones raise glucose."
+    },
+    {
+      "rank": 5,
+      "weight_tier": "secondary",
+      "candidate": "activity",
+      "check_type": "group_comparison",
+      "check_text": "low-activity days vs normal days",
+      "outcome_compared_text": "post-meal peak",
+      "streams": [
+        {
+          "generic": "step_count",
+          "patient_stream": "step_count",
+          "category": null,
+          "available": true,
+          "used": true
+        }
+      ],
+      "lookback": {
+        "kind": "days_ending_at_open",
+        "value": 1,
+        "text": "1 day"
+      },
+      "resolved_window": {
+        "start": "2026-09-17T00:00:00+05:30",
+        "end": "2026-09-17T22:30:00+05:30",
+        "includes_after_open": false
+      },
+      "evidence_level": "A",
+      "sources": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "data_status_code": "partial",
+      "review_status": "unreviewed",
+      "note": null
+    },
+    {
+      "rank": 6,
+      "weight_tier": "secondary",
+      "candidate": "illness_symptoms",
+      "check_type": "group_comparison",
+      "check_text": "days with a symptom entry vs none",
+      "outcome_compared_text": "post-meal peak",
+      "streams": [
+        {
+          "generic": "diary_context[symptom]",
+          "patient_stream": "diary_context",
+          "category": "symptom",
+          "available": true,
+          "used": true
+        }
+      ],
+      "lookback": {
+        "kind": "days_ending_at_open",
+        "value": 3,
+        "text": "3 days"
+      },
+      "resolved_window": {
+        "start": "2026-09-15T00:00:00+05:30",
+        "end": "2026-09-17T22:30:00+05:30",
+        "includes_after_open": false
+      },
+      "evidence_level": "A",
+      "sources": [
+        "S1",
+        "S3"
+      ],
+      "data_status_code": "available",
+      "review_status": "unreviewed",
+      "note": "Illness or infection is a leading listed cause."
+    },
+    {
+      "rank": 10,
+      "weight_tier": "tertiary",
+      "candidate": "alcohol",
+      "check_type": "group_comparison",
+      "check_text": "days with an alcohol entry vs none",
+      "outcome_compared_text": "post-meal peak",
+      "streams": [
+        {
+          "generic": "diary_context[substance_use]",
+          "patient_stream": "diary_context",
+          "category": "substance_use",
+          "available": true,
+          "used": true
+        }
+      ],
+      "lookback": {
+        "kind": "days_ending_at_open",
+        "value": 1,
+        "text": "1 day"
+      },
+      "resolved_window": {
+        "start": "2026-09-17T00:00:00+05:30",
+        "end": "2026-09-17T22:30:00+05:30",
+        "includes_after_open": false
+      },
+      "evidence_level": "C",
+      "sources": [],
+      "data_status_code": "partial",
+      "review_status": "unreviewed",
+      "note": "Effect direction on glucose is mixed."
+    }
+  ],
+  "skipped": [
+    {
+      "candidate": "other_medications",
+      "reason": "applies_if_not_met",
+      "detail": "medication_class_present:glucose_raising"
+    },
+    {
+      "candidate": "cycle_phase",
+      "reason": "applies_if_not_met",
+      "detail": "stream_present:menstrual_cycle"
+    }
+  ],
+  "not_selected": [
+    {
+      "candidate": "meal_timing",
+      "weight_tier": "secondary",
+      "reason": "budget"
+    }
+  ],
+  "counts": {
+    "candidates_in_rule": 10,
+    "selected": 7,
+    "skipped": 2,
+    "not_selected": 1
+  },
+  "evidence_bar_hint": "raised"
+}
