@@ -85,6 +85,30 @@ class PiStore:
         r = self.conn.execute("SELECT entry_json FROM pi_mid_entries WHERE finding_id = ?", (finding_id,)).fetchone()
         return json.loads(r[0]) if r else None
 
+    def update_entry_text(self, finding_id: str, headline: str, sentences: list[str]) -> bool:
+        """Replace only the text (`headline`, `sentences`) of an entry of a week that is still open (the loop writes an entry when its version is made and puts the final text in at the
+        week's barrier, before the week is sealed). Returns False if the text was already that; raises KeyError if there is no such entry."""
+        r = self.conn.execute("SELECT entry_json FROM pi_mid_entries WHERE finding_id = ?", (finding_id,)).fetchone()
+        if r is None:
+            raise KeyError(finding_id)
+        e = json.loads(r[0])
+        if e["headline"] == headline and e["sentences"] == sentences:
+            return False
+        e["headline"], e["sentences"] = headline, sentences
+        with self.conn:
+            self.conn.execute("UPDATE pi_mid_entries SET entry_json = ? WHERE finding_id = ?", (_j(e), finding_id))
+        return True
+
+    def text_of(self, memory_id: str, version: int) -> dict | None:
+        """The stored note of a long-term version (association, situations line, entry ids), or None."""
+        r = self.conn.execute("SELECT text_json FROM pi_text WHERE memory_id = ? AND version = ?", (memory_id, version)).fetchone()
+        return json.loads(r[0]) if r else None
+
+    def situations_line(self, memory_id: str, version: int) -> str | None:
+        """The situations line stored beside a long-term version (the text overlay), or None."""
+        r = self.conn.execute("SELECT text_json FROM pi_text WHERE memory_id = ? AND version = ?", (memory_id, version)).fetchone()
+        return (json.loads(r[0]) or {}).get("situations") if r else None
+
     def entry_exists(self, memory_id: str, case_id: str, version: int) -> bool:
         return self.conn.execute("SELECT 1 FROM pi_mid_entries WHERE memory_id = ? AND case_id = ? AND entry_version = ?", (memory_id, case_id, version)).fetchone() is not None
 
@@ -124,6 +148,10 @@ class PiStore:
         """One stored version of a long-term memory by id (a version a Findings record names in its refs)."""
         r = self.conn.execute("SELECT record_json FROM pi_long_memories WHERE memory_id = ? AND version = ?", (memory_id, version)).fetchone()
         return json.loads(r[0]) if r else None
+
+    def long_written_at(self, written_at: str) -> list[dict]:
+        """The long-term versions a weekly job wrote (they all carry the job's time), by relationship."""
+        return [json.loads(r[0]) for r in self.conn.execute("SELECT record_json FROM pi_long_memories WHERE written_at = ? ORDER BY relationship_key", (written_at,))]
 
     def latest_long_all(self, as_of_ts: int) -> list[dict]:
         rows = self.conn.execute("SELECT record_json FROM pi_long_memories m WHERE written_ts <= ? AND version = (SELECT MAX(version) FROM pi_long_memories WHERE memory_id = m.memory_id AND written_ts <= ?) "

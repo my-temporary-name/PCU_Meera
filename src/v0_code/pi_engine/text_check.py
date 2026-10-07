@@ -1,9 +1,9 @@
-"""The checks of the situations line (checks version pck-v5): the Findings checks that apply, plus the time-relative words, no association or claim, one short sentence in the frame,
-no other relationship's phrase, a content-word overlap with the diary sentences and no names. Each failure is {check, name, detail}; [] is a pass.
+"""The checks of the situations line (checks version pck-v6): the Findings checks that apply, plus the time-relative words, no association or claim, one short sentence in the frame,
+no other relationship's phrase, a content-word overlap with the diary sentences, no names and no item that is only a generic word. Each failure is {check, name, detail}; [] is a pass.
 
 1 structure (one sentence in the frame, at most `max_words` words), 2 digits, dates, times and counting words, 3 causal and claim words, 4 internal words, banned words (unknown,
 unspecified, unclear, and the feelings, states and habits: felt, feel, feeling, proud, relieved, tired, stressed, anxious, happy, sad, guilty, drained, exhausted, stayed up) and underscore tokens (the frame's own "cases" is exempt), 5 time-relative words, 6 the line repeats neither the link's phrases nor another relationship's, 7 clinical
-terms only if the sentences have them, 8 no phrase repeated, 9 the situation words come from the sentences (not strict: a stray word or two is tolerated), 10 no names."""
+terms only if the sentences have them, 8 no phrase repeated, 9 the situation words come from the sentences (not strict: a stray word or two is tolerated), 10 no names, 11 no item of the list that is only a generic word (change, evening, day, night, morning, afternoon, time, thing)."""
 
 import json
 import re
@@ -11,13 +11,15 @@ import re
 from v0_code.findings_engine.factors import parse_key
 from v0_code.findings_engine.textcheck import CAUSAL, CLOCK, MONTHS, normalise, view_text
 
-CHECKS_VERSION = "pck-v5"
+CHECKS_VERSION = "pck-v6"
 FRAME = "In the cases noted, the situations included"
 TIME_WORDS = ["this week", "last week", "recently", "recent", "today", "yesterday", "tonight", "now", "currently", "lately", "so far", "again", "earlier", "previous", "prior"]
+GENERIC_WORDS = {"change", "evening", "day", "night", "morning", "afternoon", "time", "thing"}          # an item of the list that is only one of these says nothing
+DETERMINERS = {"a", "an", "the", "her", "some", "this", "that"}
 BANNED_WORDS = ["unknown", "unspecified", "unclear", "felt", "feel", "feeling", "proud", "relieved", "tired", "stressed", "anxious", "happy", "sad", "guilty", "drained", "exhausted", "stayed up"]
 CLAIM_WORDS = ["moved together", "linked", "tended"]
 NAMES = {1: "structure", 2: "digits_dates_counting", 3: "causal_or_claim_words", 4: "no_internal_or_banned_words", 5: "no_time_relative_words", 6: "no_association_or_other_relationship",
-         7: "clinical_terms_in_view", 8: "no_repeated_word", 9: "words_from_the_sentences", 10: "no_names"}
+         7: "clinical_terms_in_view", 8: "no_repeated_word", 9: "words_from_the_sentences", 10: "no_names", 11: "no_generic_item"}
 STOP = set("""and with from that this their during amid over plus also into onto about after before while than then them they were been have having those these there which what when where who whom whose
 each both some such other more most very only noted included situations cases days""".split())
 
@@ -62,6 +64,18 @@ def _stem(w: str) -> str:
     if w.endswith("e") and len(w) > 3:
         w = w[:-1]
     return w[:5]
+
+
+def list_items(line: str) -> list[str]:
+    """The items of the list after the frame: split at commas, semicolons, "and" and "or" ("a work trip, a festival and a picnic" -> three items)."""
+    body = line.replace(FRAME, "").strip().rstrip(".!?")
+    return [x.strip() for x in re.split(r",|;|\band\b|\bor\b", body.lower()) if x.strip()]
+
+
+def _is_generic(item: str) -> bool:
+    words = [w for w in re.findall(r"[a-z']+", item) if w not in DETERMINERS]
+    stems = [w[:-1] if w.endswith("s") and w[:-1] in GENERIC_WORDS else w for w in words]
+    return bool(stems) and all(w in GENERIC_WORDS for w in stems)
 
 
 def _phrases(text: str) -> list[str]:
@@ -151,6 +165,10 @@ def check(line: str, view: dict, pb, tcfg: dict, lib, kinds: set) -> list[dict]:
     caps = [w for w in re.findall(r"\b[A-Z][a-z]+\b", body) if w != "In"]
     if caps:
         out.append(fail(10, f"the line contains a name or capitalised word ({', '.join(caps)})"))
+    # 11. an item of the list that is only a generic word (change, evening, day, ...)
+    for item in list_items(text):
+        if _is_generic(item):
+            out.append(fail(11, f"the item {item!r} is only a generic word: name the situation"))
     return out
 
 

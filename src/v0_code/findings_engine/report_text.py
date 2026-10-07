@@ -7,7 +7,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from v0_code.findings_engine.view import INTERNAL_WORDING
+from v0_code.findings_engine.view import INTERNAL_WORDING, thing_index
 
 LINKING = re.compile(r"\b(tended|linked|associated|together|goes? with|alongside|accompan\w*|coincid\w*|related|connected|tied to|contrasts?|moves? with|rises? with|go hand)\b", re.I)
 RECURRENCE = r"come up before|came up before|has come up|have come up|early observation"
@@ -24,7 +24,7 @@ def audit_classes(rows: list[dict]) -> list[str]:
     for r in rows:
         if r["result"]["text_source"] != "llm":
             continue
-        by_id = {f["id"]: f for f in r["view"]["things"]}
+        by_id = thing_index(r["view"])
         for i, s in enumerate(r["result"]["text"]["sentences"], 1):
             bundles = {g["id"]: g["members"] for g in r["view"]["sets"]}
             refs = [m for x in s["refs"] for m in [x] + bundles.get(x, [])]
@@ -227,7 +227,7 @@ def make_full_report(log: Path, text_cfg: dict, out: Path, named_cases, seed: in
     o.append(f"Sentences with \"explanation\", \"reason\", \"why\", \"because of\" or \"result\": **{len(hits)}**" + ("" if not hits else "\n" + "\n".join(f"- {f}: {t}" for f, t in hits[:40])))
     art = []
     for r in llm:
-        points = {p["id"]: p for p in r["view"]["things"]}
+        points = thing_index(r["view"])
         for x in res(r)["text"]["sentences"]:
             cites_art = any(points.get(ref, {}).get("wording") == "artifact_note" for ref in x["refs"])
             other = [ref for ref in x["refs"] if not ref.startswith("m") and points.get(ref, {}).get("wording") != "artifact_note"]

@@ -1,0 +1,5 @@
+patient_id,date,total_cholesterol,ldl_c,hdl_c,triglycerides
+meera_iyer_v1,2025-09-15,205,124,46,175
+meera_iyer_v1,2025-12-18,212,130,44,195
+meera_iyer_v1,2026-03-06,198,118,47,162
+meera_iyer_v1,2026-09-17,206,126,45,180

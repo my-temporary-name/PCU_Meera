@@ -1,0 +1,130 @@
+event_id,patient_id,timestamp,category,description,severity_or_note
+ctx_001,meera_iyer_v1,2025-10-01T20:00:00+05:30,life_event,"Maha Navami puja hosting, extended family",
+ctx_002,meera_iyer_v1,2025-10-02T18:00:00+05:30,life_event,"Dussehra family outing, Ravan Dahan",
+ctx_003,meera_iyer_v1,2025-10-06T20:00:00+05:30,life_event,"Work client escalation, high stress afternoon",moderate
+ctx_004,meera_iyer_v1,2025-10-10T05:00:00+05:30,life_event,Karva Chauth fasting day,
+ctx_005,meera_iyer_v1,2025-10-13T20:00:00+05:30,symptom,Mild headache by evening,mild
+ctx_006,meera_iyer_v1,2025-10-14T08:00:00+05:30,symptom,"Scratchy throat, low energy, achy",mild
+ctx_007,meera_iyer_v1,2025-10-15T07:00:00+05:30,symptom,"Mild fever, stayed home from office",moderate
+ctx_008,meera_iyer_v1,2025-10-16T07:00:00+05:30,symptom,"Fever broken, still weak and foggy",mild
+ctx_009,meera_iyer_v1,2025-10-18T10:00:00+05:30,life_event,"Dhanteras, Diwali shopping in crowded markets",
+ctx_010,meera_iyer_v1,2025-10-19T09:00:00+05:30,life_event,"Choti Diwali, full day festival prep",
+ctx_011,meera_iyer_v1,2025-10-20T09:00:00+05:30,life_event,"Diwali, full day hosting guests",
+ctx_012,meera_iyer_v1,2025-10-23T11:00:00+05:30,social_interaction,Bhai Dooj visit to brother's family,
+ctx_013,meera_iyer_v1,2025-10-25T20:00:00+05:30,life_event,Elder daughter's school PTM,
+ctx_014,meera_iyer_v1,2025-10-29T21:00:00+05:30,social_interaction,"Snapped at child over something small, felt guilty after",mild
+ctx_101,meera_iyer_v1,2025-11-04T21:00:00+05:30,symptom,Tension headache by night,mild
+ctx_102,meera_iyer_v1,2025-11-05T09:00:00+05:30,life_event,"Guru Nanak Jayanti public holiday, unexpected midweek rest",
+ctx_103,meera_iyer_v1,2025-11-11T19:00:00+05:30,life_event,"Quarter-close deadline day, submitted, exhausted",high
+ctx_104,meera_iyer_v1,2025-11-14T11:00:00+05:30,life_event,"Children's Day school celebrations, both kids",
+ctx_105,meera_iyer_v1,2025-11-16T18:00:00+05:30,symptom,Noticed father unusually tired and low-appetite at family lunch,"concerning, not her own symptom"
+ctx_106,meera_iyer_v1,2025-11-18T06:00:00+05:30,life_event,Father hospitalized overnight - chest pain and weakness,"severe, family crisis"
+ctx_107,meera_iyer_v1,2025-11-19T08:00:00+05:30,life_event,"Hospital day 2, coordinating care and family logistics",severe
+ctx_108,meera_iyer_v1,2025-11-20T20:00:00+05:30,life_event,"Hospital day 3, father stabilizing, first night home","moderate, improving"
+ctx_109,meera_iyer_v1,2025-11-21T18:00:00+05:30,life_event,"Father showing clearer improvement, cautiously relieved",improving
+ctx_110,meera_iyer_v1,2025-11-24T10:00:00+05:30,life_event,"Father discharged from hospital, coming home to recover",positive resolution
+ctx_111,meera_iyer_v1,2025-11-27T19:00:00+05:30,social_interaction,Evening walk resumed for first time in weeks,
+ctx_112,meera_iyer_v1,2025-11-29T12:00:00+05:30,social_interaction,"Visited parents, father visibly improving, lighter mood",
+ctx_201,meera_iyer_v1,2025-12-07T13:00:00+05:30,social_interaction,"Visited parents, father recovering well, social not clinical visit",positive
+ctx_202,meera_iyer_v1,2025-12-13T11:00:00+05:30,life_event,Holiday shopping at the mall,
+ctx_203,meera_iyer_v1,2025-12-19T09:00:00+05:30,life_event,School winter break begins,
+ctx_204,meera_iyer_v1,2025-12-24T19:00:00+05:30,life_event,"Christmas Eve preparations, family shopping and cooking",
+ctx_205,meera_iyer_v1,2025-12-25T13:00:00+05:30,life_event,"Christmas Day, visiting friends, festive indulgent meal",
+ctx_206,meera_iyer_v1,2025-12-25T14:00:00+05:30,substance_use,Social drink with friends during Christmas gathering,mild
+ctx_207,meera_iyer_v1,2025-12-28T13:00:00+05:30,social_interaction,"Visited parents, father doing well, happy low-stress visit",positive
+ctx_208,meera_iyer_v1,2025-12-31T23:30:00+05:30,life_event,"New Year's Eve family celebration, stayed up late",
+ctx_209,meera_iyer_v1,2025-12-31T23:45:00+05:30,substance_use,"Small family celebration drink, NYE",mild
+ctx_301,meera_iyer_v1,2026-01-06T09:00:00+05:30,symptom,"Mild sore throat, brushed off as weather",mild
+ctx_302,meera_iyer_v1,2026-01-07T07:00:00+05:30,symptom,"Scratchy throat and mild congestion, cold confirmed",mild
+ctx_303,meera_iyer_v1,2026-01-08T09:00:00+05:30,symptom,"Still congested, functional, colleague noted she sounded unwell",mild
+ctx_304,meera_iyer_v1,2026-01-12T14:00:00+05:30,travel,"Work trip to Chennai begins, flight in the afternoon",
+ctx_305,meera_iyer_v1,2026-01-12T20:30:00+05:30,substance_use,"Client dinner, richer restaurant food",mild
+ctx_306,meera_iyer_v1,2026-01-13T21:00:00+05:30,substance_use,"Client dinner, glass of wine with colleagues",mild
+ctx_307,meera_iyer_v1,2026-01-14T18:00:00+05:30,travel,"Return flight to Pune, Chennai work trip ends",
+ctx_308,meera_iyer_v1,2026-01-14T09:00:00+05:30,life_event,"Makar Sankranti observed briefly while traveling, sesame sweets with kids on return",
+ctx_309,meera_iyer_v1,2026-01-17T11:00:00+05:30,allergy,"Mild allergic skin reaction (redness, itching) after new soap/detergent, switched back to usual brand",mild
+ctx_310,meera_iyer_v1,2026-01-18T10:00:00+05:30,allergy,"Skin reaction noticeably better, resolving",resolving
+ctx_311,meera_iyer_v1,2026-01-22T19:00:00+05:30,life_event,"Elder daughter's mid-term exam stress begins, mild household tension","secondhand, mild"
+ctx_312,meera_iyer_v1,2026-01-25T17:00:00+05:30,life_event,Daughter's exam stress easing as prep week winds down,resolving
+ctx_313,meera_iyer_v1,2026-01-26T10:00:00+05:30,life_event,Republic Day family outing,
+ctx_401,meera_iyer_v1,2026-02-04T20:00:00+05:30,life_event,"Cousin's wedding planning calls begin, family excitement building",
+ctx_402,meera_iyer_v1,2026-02-07T11:00:00+05:30,life_event,Full day wedding shopping with extended family,
+ctx_403,meera_iyer_v1,2026-02-08T08:00:00+05:30,symptom,Sore feet from previous day's shopping,mild
+ctx_404,meera_iyer_v1,2026-02-12T17:00:00+05:30,life_event,"Half-day work, hands-on wedding preparation at parents' place",
+ctx_405,meera_iyer_v1,2026-02-13T09:00:00+05:30,life_event,"Wedding week begins, pre-wedding rituals and hosting","high activity, joyful"
+ctx_406,meera_iyer_v1,2026-02-13T22:00:00+05:30,substance_use,Social drinking with relatives during wedding festivities,mild
+ctx_407,meera_iyer_v1,2026-02-14T10:00:00+05:30,life_event,"Sangeet-style celebration, dancing and standing, very high activity","high activity, joyful"
+ctx_408,meera_iyer_v1,2026-02-14T23:00:00+05:30,substance_use,Couple of drinks celebrating with family during sangeet,mild
+ctx_409,meera_iyer_v1,2026-02-15T08:00:00+05:30,life_event,"Main wedding ceremony day, extremely long high-activity day, minimal proper meals","peak event, joyful but depleting"
+ctx_410,meera_iyer_v1,2026-02-16T09:00:00+05:30,symptom,"Physical and emotional exhaustion, took day off to recover","moderate, expected post-event depletion"
+ctx_411,meera_iyer_v1,2026-02-20T19:00:00+05:30,social_interaction,"Reflecting on the wedding with husband, feeling recovered",positive
+ctx_412,meera_iyer_v1,2026-02-22T13:00:00+05:30,social_interaction,"Visited parents, post-wedding glow still lingering, warm happy visit",positive
+ctx_501,meera_iyer_v1,2026-03-02T20:00:00+05:30,life_event,Mild pre-emptive anxiety about the demanding month ahead,mild
+ctx_502,meera_iyer_v1,2026-03-03T19:00:00+05:30,life_event,Holika Dahan celebration with neighbors and family,
+ctx_503,meera_iyer_v1,2026-03-04T10:00:00+05:30,life_event,"Holi celebrations, colors and water, very social and active",
+ctx_504,meera_iyer_v1,2026-03-05T08:00:00+05:30,symptom,Sore from Holi's physical activity,mild
+ctx_505,meera_iyer_v1,2026-03-09T09:00:00+05:30,life_event,Year-end audit prep begins in full force,high stress onset
+ctx_506,meera_iyer_v1,2026-03-11T21:00:00+05:30,symptom,Tension headache by night,mild
+ctx_507,meera_iyer_v1,2026-03-12T09:00:00+05:30,life_event,"Auditors on-site, particularly stressful high-pressure day",high
+ctx_508,meera_iyer_v1,2026-03-13T19:30:00+05:30,life_event,"Attempted a deliberate evening walk to manage stress, abandoned halfway through, too drained; felt guilty about it",psychosocial - behavior style demonstration
+ctx_509,meera_iyer_v1,2026-03-17T06:00:00+05:30,life_event,"Critical year-end deadline day, the hardest day of the month, woke up anxious before the alarm",peak stress
+ctx_510,meera_iyer_v1,2026-03-18T18:00:00+05:30,life_event,"Worst of the deadline pressure passed, some relief",easing
+ctx_511,meera_iyer_v1,2026-03-20T19:00:00+05:30,social_interaction,"Relaxed evening with husband, decompressing, genuine relief",positive
+ctx_512,meera_iyer_v1,2026-03-26T18:00:00+05:30,life_event,"Gudi Padwa, small low-key family observance",
+ctx_513,meera_iyer_v1,2026-03-31T19:00:00+05:30,life_event,"Fiscal year-end, final sign-offs, quiet sense of relief - year's hardest stretch behind her",resolution
+ctx_601,meera_iyer_v1,2026-04-06T09:00:00+05:30,symptom,"Unfamiliar chest tightness, mild breathlessness climbing stairs, brushed off initially","concerning, unclear cause"
+ctx_602,meera_iyer_v1,2026-04-06T18:30:00+05:30,healthcare_interaction,"Urgent walk-in consultation, ECG and basic tests done, results pending",acute care visit
+ctx_603,meera_iyer_v1,2026-04-07T11:00:00+05:30,healthcare_interaction,"Follow-up: results reassuring, no cardiac event, likely stress/deconditioning; doctor flagged metabolic control needing attention",resolution with clinical nudge
+ctx_604,meera_iyer_v1,2026-04-08T13:00:00+05:30,life_event,Wake-up moment: decided to start walking daily and book diabetologist follow-up,positive turning point
+ctx_605,meera_iyer_v1,2026-04-11T09:00:00+05:30,life_event,Whole family longer walk/light hike,positive
+ctx_606,meera_iyer_v1,2026-04-14T15:00:00+05:30,healthcare_interaction,"Diabetologist appointment - honest conversation about control, adherence, lifestyle; doctor suggested small concrete changes, felt supported not judged","proactive, voluntary engagement"
+ctx_607,meera_iyer_v1,2026-04-18T10:00:00+05:30,life_event,"Local outdoor family event, lots of walking",positive
+ctx_608,meera_iyer_v1,2026-04-20T19:00:00+05:30,life_event,Two full weeks of consistent evening walks - habit feeling established,milestone
+ctx_609,meera_iyer_v1,2026-04-30T19:00:00+05:30,social_interaction,"Reflected on the month with husband, genuinely proud of change since health scare",positive
+ctx_701,meera_iyer_v1,2026-05-01T09:00:00+05:30,life_event,"Buddha Purnima / Maharashtra Day, walk in cooler morning hours",
+ctx_702,meera_iyer_v1,2026-05-06T19:00:00+05:30,life_event,"First missed walk since the streak began - too hot in the evening, mild guilt","minor, environmental cause"
+ctx_703,meera_iyer_v1,2026-05-07T19:00:00+05:30,habits,Adjusted walk timing to earlier evening to beat the heat,adaptive behavior
+ctx_704,meera_iyer_v1,2026-05-11T18:00:00+05:30,life_event,"Work project deadline begins building pressure, walk skipped","mild, first of 3 consecutive misses"
+ctx_705,meera_iyer_v1,2026-05-13T21:00:00+05:30,life_event,"Third consecutive missed walk, quietly noted habit slipping, mild frustration with herself",psychosocial - guilt-prone trait
+ctx_706,meera_iyer_v1,2026-05-14T22:00:00+05:30,life_event,"Deadline day, very late hurried dinner",peak of the lapse window
+ctx_707,meera_iyer_v1,2026-05-15T19:00:00+05:30,life_event,"Deadline delivered, relief; consciously decided to restart the walking habit tomorrow","deliberate intention, not passive drift"
+ctx_708,meera_iyer_v1,2026-05-16T08:00:00+05:30,life_event,Deliberately restarted the walking habit after the week's lapse,positive - behavior style demonstration
+ctx_709,meera_iyer_v1,2026-05-25T19:00:00+05:30,life_event,"Habit feeling more resilient now, holding steadily after the mid-month wobble",positive
+ctx_710,meera_iyer_v1,2026-05-31T20:00:00+05:30,social_interaction,Reflecting on the month's ups and downs with a sense of realistic pride rather than perfection,"positive, self-aware"
+ctx_801,meera_iyer_v1,2026-06-06T11:00:00+05:30,environment,First light pre-monsoon showers noticed,
+ctx_802,meera_iyer_v1,2026-06-08T09:00:00+05:30,life_event,Mid-year review discussions begin at work,moderate
+ctx_803,meera_iyer_v1,2026-06-09T19:30:00+05:30,environment,"First proper monsoon shower caught her mid-walk, cut it short",minor
+ctx_804,meera_iyer_v1,2026-06-10T09:00:00+05:30,environment,"Monsoon properly sets in, first weather-related walk skip",environmental
+ctx_805,meera_iyer_v1,2026-06-11T19:00:00+05:30,habits,Substituted indoor activity for the usual walk,adaptive
+ctx_806,meera_iyer_v1,2026-06-16T08:00:00+05:30,symptom,"Slightly scratchy throat, suspected monsoon cold beginning",mild
+ctx_807,meera_iyer_v1,2026-06-17T07:00:00+05:30,symptom,"Mild cold and congestion, monsoon seasonal illness, WFH",mild
+ctx_808,meera_iyer_v1,2026-06-19T09:00:00+05:30,symptom,"Much improved, just a lingering cough",resolving
+ctx_809,meera_iyer_v1,2026-06-25T18:00:00+05:30,environment,Walk skipped due to heavy rain during mid-year review crunch,environmental
+ctx_810,meera_iyer_v1,2026-06-30T19:00:00+05:30,social_interaction,Reflective evening with husband on H1 2026,reflective
+ctx_901,meera_iyer_v1,2026-07-08T14:00:00+05:30,life_event,School call flags concern about slipping grades and attentiveness,mild-moderate
+ctx_902,meera_iyer_v1,2026-07-08T21:00:00+05:30,social_interaction,"Difficult, defensive conversation with daughter after dinner",tense
+ctx_903,meera_iyer_v1,2026-07-10T15:00:00+05:30,healthcare_interaction,"Met with daughter's class teacher, social/friend-group stress flagged",proactive
+ctx_904,meera_iyer_v1,2026-07-10T19:00:00+05:30,social_interaction,"Long, more productive talk with daughter, real connection",positive
+ctx_905,meera_iyer_v1,2026-07-11T15:30:00+05:30,social_interaction,"Deliberate low-pressure day with daughter, walked to a cafe and back","positive, active"
+ctx_906,meera_iyer_v1,2026-07-13T18:00:00+05:30,healthcare_interaction,"Follow-up call with class teacher, cautiously positive",easing
+ctx_907,meera_iyer_v1,2026-07-16T19:00:00+05:30,social_interaction,Extra time helping with homework,positive
+ctx_908,meera_iyer_v1,2026-07-18T18:00:00+05:30,social_interaction,Daughter seeming more like herself during family outing,stabilizing
+ctx_909,meera_iyer_v1,2026-07-24T19:00:00+05:30,social_interaction,"Discussed the month's parenting stress with husband, felt supported",positive
+ctx_910,meera_iyer_v1,2026-07-29T18:00:00+05:30,life_event,"Guru Purnima, small family observance",
+ctx_911,meera_iyer_v1,2026-07-31T19:00:00+05:30,social_interaction,"Month-end reflection: real worry early on, genuine improvement by month end",resolution
+ctx_1001,meera_iyer_v1,2026-08-02T13:00:00+05:30,social_interaction,"Visited parents, father doing consistently well now",positive
+ctx_1002,meera_iyer_v1,2026-08-15T10:00:00+05:30,life_event,"Independence Day, local family event",
+ctx_1003,meera_iyer_v1,2026-08-24T19:00:00+05:30,life_event,Early planning for Raksha Bandhan visit to brother,
+ctx_1004,meera_iyer_v1,2026-08-27T19:00:00+05:30,life_event,Rakhi preparations with daughters,"warm, anticipatory"
+ctx_1005,meera_iyer_v1,2026-08-28T13:00:00+05:30,life_event,"Raksha Bandhan visit to brother's family, small indulgent meal","joyful, mild"
+ctx_1006,meera_iyer_v1,2026-08-31T19:00:00+05:30,social_interaction,"Month-end reflection: a genuinely calm, stable month",positive baseline
+ctx_1101,meera_iyer_v1,2026-09-01T09:00:00+05:30,life_event,Quarter-close preparation beginning to loom again,anticipatory
+ctx_1102,meera_iyer_v1,2026-09-03T20:00:00+05:30,life_event,"Janmashtami eve, fasting-then-feast family observance",
+ctx_1103,meera_iyer_v1,2026-09-07T09:00:00+05:30,life_event,"Quarter-close work ramping up, first missed walk in a while",mild onset
+ctx_1104,meera_iyer_v1,2026-09-10T21:00:00+05:30,life_event,"Three consecutive missed walks now, quiet awareness of the slip","self-aware, no bandwidth yet to address"
+ctx_1105,meera_iyer_v1,2026-09-11T20:00:00+05:30,life_event,Ganesh Chaturthi preparations beginning to occupy thoughts alongside ongoing quarter-close,divided attention
+ctx_1106,meera_iyer_v1,2026-09-12T10:00:00+05:30,life_event,"Full day Ganesh Chaturthi prep - cleaning, decorating, cooking arrangements","high activity, genuinely active despite tiredness"
+ctx_1107,meera_iyer_v1,2026-09-14T06:00:00+05:30,life_event,"Ganesh idol installation ritual, festival begins, took the day off work",peak festival activity
+ctx_1108,meera_iyer_v1,2026-09-16T13:00:00+05:30,life_event,Skipped proper lunch amid combined work deadline and festival hosting pressure,layered stress
+ctx_1109,meera_iyer_v1,2026-09-17T09:00:00+05:30,life_event,"Quarter-close deadline day, delivered the numbers, largely deskbound, minimal proper meals",hardest work day of the stretch
+ctx_1110,meera_iyer_v1,2026-09-17T22:30:00+05:30,social_interaction,"Reflected with husband on the layered month - tired, foggy, aware of slipped walks and medication timing; resolved to reset once both pressures ease, honestly acknowledging tonight wasn't that night","self-aware, resolute, not distressed - matches designed 'regressed not crisis' endpoint"

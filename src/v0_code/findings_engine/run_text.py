@@ -95,12 +95,12 @@ def select_rerun(rechecked: dict, extra=(), only=None) -> list[str]:
     return sorted(ids & set(only) if only is not None else ids)
 
 
-def build_views(cfg, pb, data, versions: list[dict], lib, pi_items=None) -> dict:
-    """`pi_items`: None (PI absent, as in F2) or a function record -> the view's `earlier_conclusions` items (stage L1)."""
+def view_builder(cfg, pb, data, lib, ctx=None):
+    """A function record -> the Findings view (as-of context, backing diary entries, optional earlier conclusions), and the Context it reads (the caller closes it)."""
     hmap = {h["handoff_id"]: h for h in data["handoffs"]}
-    ctx = Context(cfg)
-    out = {}
-    for r in versions:
+    ctx = ctx or Context(cfg)
+
+    def build(r: dict, pi_items: list[dict] | None = None) -> dict:
         as_of = datetime.fromisoformat(r["as_of"])
         diary, memory = ctx.diary(as_of, r["local_date"]), ctx.state_memory(as_of, r["local_date"])
         assert [(x["view_id"], x["context_id"]) for x in diary] == [(x["view_id"], x["context_id"]) for x in r["refs"]["diary"]], r["finding_id"]
@@ -108,9 +108,17 @@ def build_views(cfg, pb, data, versions: list[dict], lib, pi_items=None) -> dict
         backing = backing_entries(r, lib, ctx.all_diary, cfg.diary["library_source"], cfg.tz, int(cfg.diary["backing_per_point"]))
         merged = merge_diary(diary, backing)
         assert all(e["at"] <= as_of for e in merged), r["finding_id"]                      # nothing after as_of, backing entries included
-        out[r["finding_id"]] = build_view(r, [hmap[h] for h in r["handoff_ids"]], merged, memory, pb, cfg.tz, cfg.part_of_day, pi_items(r) if pi_items else None, cfg.state_memory.get("view"))
-        bad = banned_words_in_view(out[r["finding_id"]], set(pb.raw["internal_words"]))
+        view = build_view(r, [hmap[h] for h in r["handoff_ids"]], merged, memory, pb, cfg.tz, cfg.part_of_day, pi_items, cfg.state_memory.get("view"))
+        bad = banned_words_in_view(view, set(pb.raw["internal_words"]))
         assert not bad, (r["finding_id"], bad)                                              # no key or value of a view is a banned word
+        return view
+    return build, ctx
+
+
+def build_views(cfg, pb, data, versions: list[dict], lib, pi_items=None) -> dict:
+    """`pi_items`: None (PI absent, as in F2) or a function record -> the view's `earlier_conclusions` items (stages L1 and L2)."""
+    build, ctx = view_builder(cfg, pb, data, lib)
+    out = {r["finding_id"]: build(r, pi_items(r) if pi_items else None) for r in versions}
     ctx.close()
     return out
 

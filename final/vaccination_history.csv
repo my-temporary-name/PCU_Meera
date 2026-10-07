@@ -1,0 +1,3 @@
+patient_id,vaccine_name,date_administered,source
+meera_iyer_v1,Influenza (seasonal),2025-11-05,new_generation
+meera_iyer_v1,Tdap booster (Tetanus-Diphtheria-Pertussis),2026-06-20,new_generation

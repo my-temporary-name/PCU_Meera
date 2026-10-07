@@ -32,6 +32,8 @@ These amendments resolve the points of `docs/findings_pi_step1_report.md` that c
 | 44 | Situations line: source and prompt changed (prompt `pp-v3`, checks `pck-v4`; supersedes the source and prompt of 43) | The situations line is built only from sentences of the mid-term entries whose refs (read from the Findings database by `finding_id`, read only) cite only diary items; sentences that cite a factor, a measure, a history or not-known-yet note, an earlier summary or conclusion, or any mix, are skipped; at most six, most recent first; none means no call and a null line. Reason: Findings' sentences mix measures, factors and diary context, so the model listed factors and measures as situations ("short sleep", "missed doses"); the prompt now also defines what a situation is and is not, allows null as a good answer, caps the list at four situations and bans words not in the sentences. Checks `pck-v4` change word lists only: `recent`, `recently`, `earlier`, `previous`, `prior` join the time-relative words, and `unknown`, `unspecified`, `unclear` are banned (check 4); the rest is `pck-v3` (phrase-level repeat check 8, softer overlap check 9). Status `no_entries` is renamed `no_diary_sentences`. |
 | 45 | Situations line tightened (prompt `pp-v4`, checks `pck-v5`) | The sample under `pp-v3` listed feelings and habits as situations ("felt relieved", "stayed up late") and broke the grammar after the frame ("included spent an evening ..."). `pp-v4` adds a rule: list noun phrases only (an event, outing, occasion, activity or piece of news), no verbs and no past tense, never feelings, states or habits. `pck-v5` bans, in check 4, felt, feel, feeling, proud, relieved, tired, stressed, anxious, happy, sad, guilty, drained, exhausted and "stayed up". No other change; P2 is not tuned further. |
 | 46 | Retrieval reads for the loop (stage L1) | `PiReader(strict=True)` returns only what was written strictly before `as_of` (the loop's reader); the default reader keeps "at or before". Reason: a version's entry is stamped with its own `as_of`, and the weekly job with the end of the week, so an inclusive read depends on whether that write already exists; the loop must read the same on a first run and on a rerun. `PiStore.long_version(memory_id, version)` reads one stored version by id (the version a Findings record names in `refs.pi_memories`). The loop writes only its own databases (`output/findings_loop.db`, `output/pi_loop.db`); its PI tables are identical to a P1 code-only replay of the same Findings versions. |
+| 47 | Situations line, check 11 (checks `pck-v6`, prompt `pp-v4` unchanged) | The `pp-v4` sample produced items such as "an evening" and "a change". `pck-v6` adds check 11: an item of the list that is only a generic word (change, evening, day, night, morning, afternoon, time, thing) fails; after the one retry the line is dropped to null. |
+| 48 | The loop with the models (stage L2) | The loop writes each version into PI's open week at once with the Findings code line and puts the final text into the entry at the week's barrier (`replace_entry_text`: only the text changes, never in a sealed week), so the structured reads of later versions are the same as in L1. Barrier order per week: the Findings texts of the week's versions (concurrency 6), the entry texts, the weekly job, then the situations lines of the memory versions the job wrote (diary-only sentences of the week's entries and the previous line; the situations line is stored in the overlay `pi_text` beside the version). A Findings view shows an earlier conclusion's situations line as the list only, without its frame. `PiStore.long_written_at`, `text_of`, `situations_line`, `update_entry_text` are the new reads and the one text update. |
 | 32 | The Evidence library is an input | Section 5 gains: **Evidence library** (config path), read only: for `same_day_only` (the pair's ordering) and the phrase-book load check. |
 | 34 | `7d` window | Added to the shared phrase book. |
 | P | Phrase book edits | As in the Findings Amendments (row P). |
@@ -238,7 +240,7 @@ or `{"situations": null}`. One sentence of at most 25 words in the frame "In the
 | `retracted` | the fixed sentence of 8.2 |
 | `same_day_only` true | "on the same day" (unless the exposure phrase already says it) |
 
-### 8.4 Checks of the situations line (checks version `pck-v5`; these only)
+### 8.4 Checks of the situations line (checks version `pck-v6`; these only)
 
 1. One sentence in the frame, at most 25 words (valid JSON of the form above).
 2. No digits, dates or times, and no counting words (one, two, once, twice, first, second, several).
@@ -250,6 +252,7 @@ or `{"situations": null}`. One sentence of at most 25 words in the frame "In the
 8. No phrase repeated (a run of content words between other words or punctuation; a word may come back inside a different phrase, e.g. "work trip" and "work festival").
 9. The situation words come from the sentences (stem overlap, with plurals, -ing, -ed and a final e ignored); the check fails only when at least two words are strays and they are at least a quarter of the line's content words.
 10. No names (no capitalised word besides the start of the sentence).
+11. No item of the list is only a generic word: change, evening, day, night, morning, afternoon, time, thing (with or without an article, singular or plural). An item such as "an evening with a family emergency" passes; "an evening" fails.
 
 On failure, retry once with the failed checks added. If it fails again, **drop the line** (store null): the association stays. A previous line is kept (no call) when no diary sentence is available this week.
 
@@ -260,7 +263,7 @@ Built from the phrase book and the status: the exposure phrase, the verb for the
 ### 8.6 Regeneration, caching and storage
 
 - Every `regenerate_every_weeks` (default 4) counted from the creation week, the situations line is rewritten **without** the previous line, from this week's sentences only, so wording cannot drift.
-- The model result is stored beside the memory version (`pi_text`, `pi_llm`: raw and cleaned line, view hash, prompt version `pp-v4`, checks version `pck-v5`, the finding ids of the entries whose sentences were used), never in it. The cache key covers the view, the prompt texts, the model, the settings and the checks version; a refresh flag recomputes.
+- The model result is stored beside the memory version (`pi_text`, `pi_llm`: raw and cleaned line, view hash, prompt version `pp-v4`, checks version `pck-v6`, the finding ids of the entries whose sentences were used), never in it. The cache key covers the view, the prompt texts, the model, the settings and the checks version; a refresh flag recomputes.
 - Model, reasoning effort, timeout and retries are config (section 10).
 
 ---

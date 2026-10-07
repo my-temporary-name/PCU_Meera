@@ -1,0 +1,174 @@
+"""The polish-round report (docs/loop_polish_report.md): the no-model re-check, totals, fallbacks with reasons, versions changed from L2 by cause, calls and tokens, regression against F1 and
+L2, the scans (including duplicated sentences and "come up before" without its factor), the audits, and the read list (the 17 September cases, five cases with a "come up before"
+sentence, every version whose view merged duplicate things, every remaining fallback). Reads databases only."""
+
+import dataclasses
+import json
+import re
+import sys
+from collections import Counter, defaultdict
+from pathlib import Path
+
+from v0_code.findings_engine import run as frun
+from v0_code.findings_engine import textcheck, textlayer
+from v0_code.findings_engine.report_text import SCAN_WORDS, audit_classes, clinical_term_hits
+from v0_code.findings_engine.run_text import build_views
+from v0_code.findings_engine.view import thing_index
+from v0_code.loop_engine import l2_recheck, regress
+from v0_code.loop_engine.config import LoopConfig
+from v0_code.loop_engine.l2_audit import audit_call_log
+from v0_code.loop_engine.l2_report import CHECK_NAMES, _ro, load_texts, render, sentences
+from v0_code.loop_engine.pi_live import earlier_conclusions
+from v0_code.loop_engine.run import audits
+from v0_code.pi_engine.engine import PiReader
+from v0_code.pi_engine.storage import PiStore
+
+ROOT = Path(__file__).resolve().parents[3]
+
+
+def flat(text: dict) -> list[str]:
+    return [text["headline"]] + [s["text"] for s in sentences(text)]
+
+
+def make(cfg: LoopConfig, f1_db: str, l1_findings: str, l1_pi: str, out: Path, wall: str = "") -> str:
+    fdb, pdb = cfg.l2["findings_db"], cfg.l2["pi_db"]
+    prev = cfg.l2["previous"]
+    run_cfg = dataclasses.replace(cfg, findings_db=fdb, pi_db=pdb)
+    recs = regress.records(fdb)
+    versions = sorted(recs.values(), key=lambda r: (r["as_of"], r["finding_id"]))
+    texts, old = load_texts(fdb), load_texts(prev["findings_db"])
+    pi = PiStore(pdb, readonly=True)
+    reader = PiReader(cfg.pi, pi, strict=True)
+    lib, pb, data = frun.prepare(cfg.findings)
+    views = build_views(cfg.findings, pb, data, versions, lib, pi_items=lambda r: earlier_conclusions(r, reader, cfg.state_words, pi.situations_line))
+    log = json.loads(_ro(fdb).execute("SELECT value FROM meta WHERE key = 'l2_call_log'").fetchone()[0])
+    calls = {c["id"]: c for c in log["calls"] if c["phase"] == "findings_text"}
+    lines = [c for c in log["calls"] if c["phase"] == "pi_line"]
+    n = len(versions)
+    model_ids = {i for i, c in calls.items() if not c["from_cache"]}
+    fallbacks = sorted(fid for fid, t in texts.items() if t["source"] != "llm")
+    first = [fid for fid in model_ids if texts[fid].get("checks") and texts[fid]["checks"][0]]
+    by_check = Counter(c for fid in first for c in {f["check"] for f in texts[fid]["checks"][0]})
+    usage = [u for fid in model_ids for u in texts[fid].get("usage", [])]
+    pc = _ro(pdb)
+    pl = [(m, v, st, json.loads(tj), json.loads(uj or "[]"), json.loads(cj or "[]")) for m, v, st, tj, uj, cj in pc.execute(
+        "SELECT t.memory_id, t.version, t.status, t.text_json, l.usage_json, l.checks_json FROM pi_text t LEFT JOIN pi_llm l USING (memory_id, version) ORDER BY t.memory_id, t.version")]
+    pc.close()
+    regenerated = [x for x in lines if x["attempts"] > 0 and not x["from_cache"]]
+    pusage = [u for c in regenerated for (m, v, st, tj, uj, cj) in pl if f"{m}#{v}" == c["id"] for u in uj]
+    wall_s = sum(max((b["lines_end"] for b in log["barriers"] if b.get("run") == r), default=0) for r in range(1, log.get("runs", 1) + 1))
+    changed = [fid for fid in texts if fid in old and flat(texts[fid]["text"]) != flat(old[fid]["text"])]
+    by_cause = Counter(calls[f]["cause"] for f in changed)
+    cause_all = Counter(c["cause"] for c in calls.values())
+    o = ["# Polish round report: p-v5, ck-v7, merged things, earlier conclusions tied to their things\n",
+         f"Loop config `{cfg.version}`; Findings `{textlayer.PROMPT_VERSION}` / `{textcheck.CHECKS_VERSION}`, PI lines `pp-v4` / `pck-v6`; databases "
+         f"`{Path(fdb).name}` and `{Path(pdb).name}`; previous run `{Path(prev['findings_db']).name}`.\n", "## The no-model re-check of the previous run's 284 texts under ck-v7\n"]
+    o.append(l2_recheck.render(l2_recheck.recheck(cfg, prev["findings_db"], prev["pi_db"])))
+    o += ["", "## Totals\n",
+          f"- versions: **{n}**; **{len(fallbacks)} code-line fallbacks ({100 * len(fallbacks) / n:.1f}%; acceptance: at most {int(0.04 * n)} = 4%)**",
+          f"- how each version's text was settled: " + ", ".join(f"{k}: {v}" for k, v in sorted(cause_all.items())),
+          f"- model-written Findings texts: {len(model_ids)}; first-attempt failures **{len(first)} of {len(model_ids)}**" + ("" if not by_check else " (" + ", ".join(f"{CHECK_NAMES[c]} {k}" for c, k in sorted(by_check.items())) + ")"),
+          f"- PI situations lines: {len(pl)} memory versions; **{len(regenerated)} regenerated by the model** (their diary-only sentences, previous line or link text changed), {sum(1 for x in lines if x['from_cache'])} reused from the previous run, "
+          f"{sum(1 for x in lines if x['attempts'] == 0 and not x['from_cache'])} with no call (no diary-only sentence or retracted); by status {dict(Counter(st for _, _, st, *_ in pl))}",
+          f"- model calls: Findings {sum(len(texts[f]['checks']) for f in model_ids)}, PI {sum(c['attempts'] for c in regenerated)}; tokens in {sum(u.get('input_tokens') or 0 for u in usage + pusage):,}, "
+          f"out {sum(u.get('output_tokens') or 0 for u in usage + pusage):,} (reasoning {sum(u.get('reasoning_tokens') or 0 for u in usage + pusage):,}); call seconds {sum(u['wall_seconds'] for u in usage + pusage):.0f}; "
+          f"run time {wall_s / 60:.1f} min" + (f" (wall {wall})" if wall else ""), ""]
+    o += ["## Versions whose text changed from the previous run, by cause\n", f"- **{len(changed)} of {n}** texts differ from the previous run: " + ", ".join(f"{k}: {v}" for k, v in sorted(by_cause.items())),
+          "- texts kept as they were: " + str(sum(1 for f in texts if f in old and flat(texts[f]["text"]) == flat(old[f]["text"]))), ""]
+    o += ["## Fallbacks and their reasons\n"]
+    for fid in fallbacks:
+        t = texts[fid]
+        why = [f"attempt {k}: " + ("; ".join(f"{CHECK_NAMES[f['check']]} ({f['detail']})" for f in att) if att else "no failure recorded") for k, att in enumerate(t.get("checks", []), 1)]
+        o.append(f"- `{fid}` (cause of the call: {calls[fid]['cause']}): " + " | ".join(why))
+    if not fallbacks:
+        o.append("- none")
+    cmp_f1 = regress.compare_findings(f1_db, fdb)
+    l1, l2prev = regress.records(l1_findings), regress.records(prev["findings_db"])
+    same_l1 = sum(json.dumps(l1[k], sort_keys=True) == json.dumps(recs[k], sort_keys=True) for k in recs) if l1.keys() == recs.keys() else -1
+    same_prev = sum(json.dumps(l2prev[k], sort_keys=True) == json.dumps(recs[k], sort_keys=True) for k in recs) if l2prev.keys() == recs.keys() else -1
+    cmp_pi = regress.compare_pi(prev["pi_db"], pdb)
+    o += ["", "## Regression\n", f"- against F1: versions that differ outside `repeat` and `refs.pi_memories`: **{len(cmp_f1['violations'])} of {cmp_f1['f1']}**",
+          f"- structured layer (`findings` rows) identical to L1: **{same_l1} of {n}**, to the previous L2 run: **{same_prev} of {n}**",
+          "- PI against the previous run: " + "; ".join(f"`{t}` {'identical' if v['identical'] else str(v['different_rows']) + ' rows differ'}" for t, v in cmp_pi.items())
+          + f"; final statuses identical: {regress.final_statuses(prev['pi_db']) == regress.final_statuses(pdb)}; status transitions identical: {regress.status_transitions(prev['pi_db']) == regress.status_transitions(pdb)}", ""]
+    llm_rows = [{"finding_id": r["finding_id"], "view": views[r["finding_id"]], "result": {"text_source": texts[r["finding_id"]]["source"], "text": texts[r["finding_id"]]["text"]}} for r in versions]
+    llm_only = [r for r in llm_rows if r["result"]["text_source"] == "llm"]
+    scan_rep = [(r["finding_id"], t) for r in llm_only for t in [r["result"]["text"]["headline"]] + [s["text"] for s in sentences(r["result"]["text"])] if re.search(r"\brepeatedly\b|\bmoved together\b", t, re.I)]
+    scan_rec, scan_cite = [], []
+    for r in llm_only:
+        about = {p["id"]: p["about"] for p in r["view"]["earlier_conclusions"]}
+        prim = {i: t["id"] for t in r["view"]["things"] for i in t.get("ids", [t["id"]])}
+        sets = {g["id"]: g["members"] for g in r["view"]["sets"]}
+        for s in sentences(r["result"]["text"]):
+            cited = {prim.get(y, y) for x in s["refs"] for y in [x] + sets.get(x, [])}            # a cited set counts as citing its members, a merged member as its thing
+            ps = [x for x in s["refs"] if x in about]
+            if re.search(textcheck.RECURRENCE, s["text"].lower()):
+                if not ps:
+                    scan_rec.append((r["finding_id"], s["text"], s["refs"]))
+                elif any(a not in cited for p in ps for a in about[p]):
+                    scan_cite.append((r["finding_id"], s["text"], s["refs"]))
+            elif ps and any(a not in cited for p in ps for a in about[p]):
+                scan_cite.append((r["finding_id"], s["text"], s["refs"]))
+    norm = lambda t: t.strip().lower().rstrip(".!?")
+    dup_s = [(r["finding_id"], t) for r in llm_only for t, k in Counter(norm(s["text"]) for s in sentences(r["result"]["text"])).items() if k > 1]
+    dup_h = [(r["finding_id"], norm(r["result"]["text"]["headline"])) for r in llm_only if norm(r["result"]["text"]["headline"]) in {norm(s["text"]) for s in sentences(r["result"]["text"])}]
+    dup = dup_s + dup_h
+    scan_expl = [(r["finding_id"], s["text"]) for r in llm_only for s in sentences(r["result"]["text"]) if SCAN_WORDS.search(s["text"])]
+    scan_art = []
+    for r in llm_only:
+        by_id = thing_index(r["view"])
+        for s in sentences(r["result"]["text"]):
+            if any(by_id.get(x, {}).get("wording") == "artifact_note" for x in s["refs"]) and (re.search(r"\b(tended|linked|together|come up before|early observation)\b", s["text"], re.I) or any(re.fullmatch(r"[sp]\d+", x) for x in s["refs"])):
+                scan_art.append((r["finding_id"], s["text"]))
+    stronger, clin = audit_classes(llm_rows), clinical_term_hits(llm_rows, pb)
+    nomark = [(r["finding_id"], s["text"]) for r in llm_only for s in sentences(r["result"]["text"]) if s["text"].strip()[-1:] not in ".!?"]
+    enough_h1 = [r["finding_id"] for r in versions if r["history_note"] == "enough" and any("h1" in s["refs"] for s in sentences(texts[r["finding_id"]]["text"]) if texts[r["finding_id"]]["source"] == "llm")]
+    calls_bad, calls_n = audit_call_log(fdb, pdb)
+    bad, n_aud = audits(run_cfg, versions)
+    o += ["## Scans of the final Findings texts\n",
+          f"- a headline or sentence with \"repeatedly\" or \"moved together\": **{len(scan_rep)}**" + "".join(f"\n  - {f}: {t}" for f, t in scan_rep),
+          f"- sentences stronger than their class or with claim wording and no claim-class point: **{len(stronger)}**" + "".join(f"\n  - {x}" for x in stronger),
+          f"- duplicated sentences within a version: **{len(dup_s)}** (a sentence written twice); the headline repeated as a sentence: **{len(dup_h)}**; kept from an earlier prompt's text: "
+          f"{sum(1 for f, _ in dup if texts[f].get('from_prompt'))} of {len(dup)}" + "".join(f"\n  - {f} (sentence twice): {t}" for f, t in dup_s) + "".join(f"\n  - {f} (headline as a sentence): {t}" for f, t in dup_h),
+          f"- \"come up before\" or \"an early observation\" without a p ref: **{len(scan_rec)}**; with a p ref but not citing its factor: **{len(scan_cite)}**" + "".join(f"\n  - {f}: {t} {r}" for f, t, r in scan_rec + scan_cite),
+          f"- explanation or reason words: **{len(scan_expl)}**" + "".join(f"\n  - {f}: {t}" for f, t in scan_expl),
+          f"- artifact sentences linked to a claim, an earlier summary or an earlier conclusion: **{len(scan_art)}**" + "".join(f"\n  - {f}: {t}" for f, t in scan_art),
+          f"- clinical terms not in the view: **{len(clin)}**" + "".join(f"\n  - {c}" for c in clin),
+          f"- sentences without a final mark: **{len(nomark)}**; sentences citing the history note when there is enough history: **{len(enough_h1)}**", ""]
+    o += ["## Audits\n", "- as-of audits (evidence, diary, state memory, PI labels, strict PI reads): " + ("**clean**" if not bad else f"**{len(bad)} violations**") + f" {json.dumps(n_aud)}" + "".join(f"\n  - {b}" for b in bad[:10]),
+          "- model-call ordering: " + ("**clean**" if not calls_bad else f"**{len(calls_bad)} violations**") + f" {json.dumps(calls_n)}" + "".join(f"\n  - {b}" for b in calls_bad[:10]), ""]
+    by_case = defaultdict(list)
+    for r in versions:
+        by_case[r["case_id"]].append(r)
+    show = lambda r: render(r["finding_id"], r, texts[r["finding_id"]], views[r["finding_id"]], pi, None)
+    rl = cfg.l2["read_list"]
+    o += ["## READ LIST\n", f"### (a) The cases of {rl['polish_day']}\n"]
+    for cid in sorted(by_case):
+        if cid[5:15] == rl["polish_day"]:
+            for r in by_case[cid]:
+                o += show(r)
+    withp = [r for r in versions if any(re.search(textcheck.RECURRENCE, s["text"].lower()) for s in sentences(texts[r["finding_id"]]["text"]))]
+    cases_p = sorted({r["case_id"] for r in withp})
+    pick = cases_p[:: max(1, len(cases_p) // 5)][:5]
+    o += [f"### (b) Five cases with a \"come up before\" sentence ({len(cases_p)} such cases; every {max(1, len(cases_p) // 5)}th)\n"]
+    for cid in pick:
+        for r in by_case[cid]:
+            o += show(r)
+    merged = [r for r in versions if any("ids" in t for t in views[r["finding_id"]]["things"])]
+    o += [f"### (c) Every version whose view merged duplicate things ({len(merged)} versions)\n"]
+    for r in merged:
+        v = views[r["finding_id"]]
+        o += [f"- merged in the view: " + "; ".join(f"`{t['ids']}` = \"{t['name']}\" ({t['wording']})" for t in v["things"] if "ids" in t)]
+        o += show(r)
+    o += [f"### (d) Every remaining fallback ({len(fallbacks)})\n"]
+    for fid in fallbacks:
+        o += show(recs[fid])
+    pi.close()
+    out.write_text("\n".join(o))
+    return "\n".join(o)
+
+
+if __name__ == "__main__":
+    # usage: polish_report <loop config> <F1 findings db> <L1 findings db> <L1 pi db> <report path> [wall]
+    cfg = LoopConfig.from_yaml(ROOT / sys.argv[1] if not Path(sys.argv[1]).is_absolute() else sys.argv[1], ROOT)
+    make(cfg, sys.argv[2], sys.argv[3], sys.argv[4], Path(sys.argv[5]), sys.argv[6] if len(sys.argv) > 6 else "")

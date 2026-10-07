@@ -1,4 +1,4 @@
-"""PI text layer, redesigned (stage P2, prompt pp-v4, checks pck-v5): the association sentence is the P1 code text and is never written by the model; an optional situations line is
+"""PI text layer, redesigned (stage P2, prompt pp-v4, checks pck-v6): the association sentence is the P1 code text and is never written by the model; an optional situations line is
 written from the diary-only sentences of the mid-term entries, checked, retried once and otherwise dropped."""
 
 import json
@@ -226,6 +226,18 @@ def test_check_9_fails_only_when_several_words_and_a_quarter_of_the_line_are_not
     assert 9 in failing(chk(f"{FRAME} a picnic and a concert."))
 
 
+@pytest.mark.parametrize("item", ["change", "a change", "an evening", "the day", "a night", "morning", "an afternoon", "some time", "a thing", "days", "her evenings", "changes"])
+def test_check_11_an_item_that_is_only_a_generic_word_fails(item):
+    assert 11 in failing(chk(f"{FRAME} a work trip, {item} and a festival.")), item
+    assert 11 in failing(chk(f"{FRAME} {item}.")), item
+
+
+@pytest.mark.parametrize("line", [f"{FRAME} a work trip and a festival.", f"{FRAME} an evening with a family emergency.", f"{FRAME} a night out, a deadline day and a morning walk.",
+                                  f"{FRAME} a change of job and a long day trip."])
+def test_check_11_an_item_with_a_real_noun_phrase_passes(line):
+    assert 11 not in failing(chk(line))
+
+
 def test_check_10_no_names():
     assert 10 in failing(chk(f"{FRAME} a trip to Chennai and a festival."))
     assert 10 in failing(chk(f"{FRAME} a festival hosted by Meera."))
@@ -357,7 +369,7 @@ def test_writing_texts_leaves_every_structured_table_byte_identical(tmp_path):
     pi, m = memory(tmp_path)
     before = json.dumps(pi.store.dump(), sort_keys=True)
     pi.store.put_text(m["memory_id"], m["version"], "k", "h", {"text": {"sentences": ["x"], "source": "code_text", "situations": None, "entry_ids": []}, "text_source": "code_text", "status": "null",
-                                                               "llm_raw": ["r"], "usage": [{}], "checks": [[]], "prompt_version": "pp-v4", "checks_version": "pck-v5"})
+                                                               "llm_raw": ["r"], "usage": [{}], "checks": [[]], "prompt_version": "pp-v4", "checks_version": "pck-v6"})
     assert json.dumps(pi.store.dump(), sort_keys=True) == before and (m["memory_id"], m["version"]) in pi.store.texts()
     pi.store.close()
     PiStore(tmp_path / "pi.db", rebuild=True)
@@ -370,7 +382,7 @@ def test_the_prompt_is_the_specs_verbatim_and_has_the_rules():
     assert text_layer.SYSTEM_PROMPT == block
     retry = spec.split("**Retry addendum (appended once):**")[1].split("```")[1].strip()
     assert text_layer.RETRY_ADDENDUM == retry
-    assert text_layer.PROMPT_VERSION == "pp-v4" and text_check.CHECKS_VERSION == "pck-v5"
+    assert text_layer.PROMPT_VERSION == "pp-v4" and text_check.CHECKS_VERSION == "pck-v6"
     p = text_layer.SYSTEM_PROMPT
     body, listing = p.split("Do not use the words:")
     listing = listing.split("\n")[0]

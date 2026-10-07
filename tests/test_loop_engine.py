@@ -262,3 +262,45 @@ def test_the_strict_audit_rejects_a_read_of_something_written_at_the_versions_ow
     assert laudit.audit_pi_reads(path, pi.store.path, pi.cfg.tz, pi.cfg.seen_before_bands, 2, strict=False)[0] == []
     bad, _ = laudit.audit_pi_reads(path, pi.store.path, pi.cfg.tz, pi.cfg.seen_before_bands, 2, strict=True)
     assert any("open week" in b for b in bad)
+
+
+# ---- L2: the entry text is final only at the week's barrier; the situations line comes from the overlay ------------------------------------------------------------------------
+def test_an_open_weeks_entry_text_can_be_replaced_until_the_week_is_sealed_and_only_the_text_changes(tmp_path):
+    from v0_code.pi_engine.engine import SealedWeekError
+    pi, _ = mk(tmp_path, {SLEEP: __import__("pi_helpers").weekly([S, S, S])})
+    rec(pi, "case_a", 1, 1, [(SLEEP, S, "exposed", [])], headline="Provisional headline.", sentences=("Provisional sentence.",))
+    before = pi.store.entry_by_finding("fnd_case_a_v1")
+    pi.replace_entry_text("fnd_case_a_v1", "Final headline.", ["One final sentence.", "Another."])
+    after = pi.store.entry_by_finding("fnd_case_a_v1")
+    assert after["headline"] == "Final headline." and after["sentences"] == ["One final sentence.", "Another."]
+    assert {k: v for k, v in after.items() if k not in ("headline", "sentences")} == {k: v for k, v in before.items() if k not in ("headline", "sentences")}
+    assert pi.get_open_week(dt(2))["entries"][0]["headline"] == "Final headline."
+    pi.replace_entry_text("fnd_case_a_v1", "Final headline.", ["One final sentence.", "Another."])                    # the same text again is fine
+    run_week(pi, 0)
+    with pytest.raises(SealedWeekError):
+        pi.replace_entry_text("fnd_case_a_v1", "Too late.", ["x"])
+    with pytest.raises(KeyError):
+        pi.replace_entry_text("no_such_entry", "x", ["y"])
+
+
+def test_the_situations_line_of_a_memory_version_is_read_from_the_text_overlay(tmp_path):
+    pi = promoted(tmp_path)
+    m = pi.get_long_term(SLEEP, dt(9))
+    assert pi.store.situations_line(m["memory_id"], m["version"]) is None
+    pi.store.put_text(m["memory_id"], m["version"], "k", "h", {"text": {"sentences": m["text"]["sentences"], "source": "code_text", "situations": "In the cases noted, the situations included a festival.", "entry_ids": []},
+                                                              "text_source": "code_text", "status": "ok", "llm_raw": [], "usage": [], "checks": [], "prompt_version": "pp-v4", "checks_version": "pck-v6"})
+    assert pi.store.situations_line(m["memory_id"], m["version"]) == "In the cases noted, the situations included a festival."
+
+
+def test_an_earlier_conclusion_carries_the_situations_line_when_there_is_one(tmp_path):
+    pi = promoted(tmp_path)
+    p = live(pi)
+    p.at(dt(9))
+    factors = [fac(SLEEP)]
+    refs = p.memory_refs(factors, "c")
+    r = record_for(pi, factors, [{"relationship_key": SLEEP, "pi_status": "supported", "seen_before": "none"}], refs)
+    line = "In the cases noted, the situations included a festival and a work trip."
+    assert "situations" not in earlier_conclusions(r, pi, WORDS)[0]
+    got = earlier_conclusions(r, pi, WORDS, situations=lambda mid, ver: line)[0]["situations"]
+    assert got == "a festival and a work trip"                                               # the frame is left out: its word "cases" is an internal word no view may carry
+    assert "situations" not in earlier_conclusions(r, pi, WORDS, situations=lambda mid, ver: None)[0]

@@ -1,0 +1,12 @@
+event_id,patient_id,timestamp,type,value,unit,source
+lab_001,meera_iyer_v1,2025-09-15T08:00:00+05:30,fasting_glucose,132,mg/dL,lab_synthetic
+lab_002,meera_iyer_v1,2025-09-15T08:00:00+05:30,hba1c,7.1,%,lab_synthetic
+lab_003,meera_iyer_v1,2025-09-15T08:00:00+05:30,total_cholesterol,205,mg/dL,lab_synthetic
+lab_004,meera_iyer_v1,2025-09-15T08:00:00+05:30,ldl_c,124,mg/dL,lab_synthetic
+lab_005,meera_iyer_v1,2025-09-15T08:00:00+05:30,hdl_c,46,mg/dL,lab_synthetic
+lab_006,meera_iyer_v1,2025-09-15T08:00:00+05:30,triglycerides,175,mg/dL,lab_synthetic
+lab_007,meera_iyer_v1,2025-09-15T08:00:00+05:30,alt,45,U/L,lab_synthetic
+lab_008,meera_iyer_v1,2025-09-15T08:00:00+05:30,ast,33,U/L,lab_synthetic
+lab_009,meera_iyer_v1,2025-09-15T08:00:00+05:30,ggt,48,U/L,lab_synthetic
+lab_010,meera_iyer_v1,2025-09-15T08:00:00+05:30,creatinine,0.8,mg/dL,lab_synthetic
+lab_011,meera_iyer_v1,2025-09-15T08:00:00+05:30,tsh,2.7,mIU/L,lab_synthetic

@@ -4,7 +4,7 @@ import json
 import re
 
 from v0_code.findings_engine import textclean
-from v0_code.findings_engine.view import INTERNAL_WORDING
+from v0_code.findings_engine.view import INTERNAL_WORDING, thing_index
 from v0_code.findings_engine.wording import CLAIM
 from v0_code.intel_common.phrasebook import Phrasebook
 
@@ -13,11 +13,14 @@ CAUSAL = [r"\bcaus\w*", r"\btrigger\w*", r"\bled to\b", r"\bresult\w*", r"\bdue 
 MONTHS = r"\b(january|february|march|april|june|july|august|september|october|november|december)\b"          # "may" is left out: it is a modal verb ("may be linked to"); a dated "May 5" has a digit
 CLOCK = r"\b(o'clock|a\.?m\.?|p\.?m\.?)\b"
 MOVE_TOGETHER, MAY_BE_LINKED = r"\bha(?:s|ve) tended to move together with\b", r"\bmay be linked to\b"
+MOVED_TOGETHER = r"\b(?:ha(?:s|ve) )?(?:repeatedly )?moved together(?: with)?\b"          # a phrase copied from an earlier conclusion ("has repeatedly moved together with") is the same claim
+MOVE_TOGETHER_ANY = MOVE_TOGETHER + "|" + MOVED_TOGETHER
+SAME_DAY = r"\bsame day\b|\bthat day\b|\bon the day\b"                      # a "same-day" is read as "same day" before the match
 RECURRENCE = r"\b(come|comes|came) up before\b|\bhas come up\b|\bhave come up\b|\bearly observation\b"
-CHECKS_VERSION = "ck-v5.2"                       # bump when a check changes: it is part of the cache key
+CHECKS_VERSION = "ck-v7"                       # bump when a check changes: it is part of the cache key
 VIEW_ID = r"\b[fgmdsphn]\d+\b"
 NAMES = {1: "structure", 2: "refs_exist", 3: "no_digits_dates_counts", 4: "no_causal_wording", 5: "no_copied_diary_or_internal_words", 6: "claim_level", 7: "required_statements",
-         8: "recurrence_wording", 9: "often_together_wording", 10: "one_summary_sentence", 11: "clinical_terms_in_view", 12: "object_of_a_claim", 13: "no_repeated_phrase", 14: "claim_followed_by_an_outcome"}
+         8: "recurrence_wording", 9: "often_together_wording", 10: "one_summary_sentence", 11: "clinical_terms_in_view", 12: "object_of_a_claim", 13: "no_repeated_phrase", 14: "claim_followed_by_an_outcome", 15: "earlier_conclusion_with_its_thing", 16: "no_history_when_enough"}
 
 
 def fail(n: int, detail: str) -> dict:
@@ -111,7 +114,7 @@ def check_text(obj: dict, view: dict, record: dict, pb: Phrasebook, text_cfg: di
             if re.search(rf"\b{re.escape(w)}{'' if w.endswith('s') else 's?'}\b", low):
                 out.append(fail(5, f"{where} uses the internal word {w!r}"))
     # 6. claim level matches the refs; a cited bundle id counts as citing all its members
-    by_id = {f["id"]: f for f in view["things"]}
+    by_id = thing_index(view)
     bundles = {g["id"]: g["members"] for g in view["sets"]}
     allowed_tt, allowed_ml = set(CLAIM[:2]), set(CLAIM)
     expanded = []
@@ -121,13 +124,13 @@ def check_text(obj: dict, view: dict, record: dict, pb: Phrasebook, text_cfg: di
     for i, s in enumerate(sents, 1):
         low = re.sub(r"\s+", " ", normalise(s["text"]).lower().replace("same-day", "same day"))
         classes = {INTERNAL_WORDING[by_id[r]["wording"]] for r in expanded[i - 1] if r in by_id}
-        tt, ml = bool(re.search(MOVE_TOGETHER, low)), bool(re.search(MAY_BE_LINKED, low))
+        tt, ml = bool(re.search(MOVE_TOGETHER_ANY, low)), bool(re.search(MAY_BE_LINKED, low))
         if tt and not (classes and classes <= allowed_tt):
-            out.append(fail(6, f"sentence {i} says 'has tended to move together with' but cites " + (", ".join(sorted(classes)) if classes else "no point")))
+            out.append(fail(6, f"sentence {i} says 'has tended to move together with' (or 'moved together') but cites " + (", ".join(sorted(classes)) if classes else "no point")))
         if ml and not (classes and classes <= allowed_ml):
             out.append(fail(6, f"sentence {i} says 'may be linked to' but cites " + (", ".join(sorted(classes)) if classes else "no point")))
-        if any(c.endswith("_same_day") for c in classes) and "same day" not in low:
-            out.append(fail(6, f"sentence {i} cites a same-day point but does not say 'same day'"))
+        if any(c.endswith("_same_day") for c in classes) and not re.search(SAME_DAY, low):
+            out.append(fail(6, f"sentence {i} cites a same-day point but does not say 'same day', 'same-day', 'that day' or 'on the day'"))
     # 8. recurrence wording and earlier summaries
     summaries = {x["id"] for x in view["earlier_summaries"]}
     conclusions = {x["id"] for x in view["earlier_conclusions"]}
@@ -138,7 +141,7 @@ def check_text(obj: dict, view: dict, record: dict, pb: Phrasebook, text_cfg: di
             out.append(fail(8, f"sentence {i} says it has come up before or is an early observation but cites no earlier conclusion"))
         if set(refs) & summaries:
             kinds = {INTERNAL_WORDING[by_id[r]["wording"]] for r in refs if r in by_id}
-            if kinds & set(CLAIM) or re.search(MOVE_TOGETHER, low) or re.search(MAY_BE_LINKED, low):
+            if kinds & set(CLAIM) or re.search(MOVE_TOGETHER_ANY, low) or re.search(MAY_BE_LINKED, low):
                 out.append(fail(8, f"sentence {i} combines an earlier summary with a claim about a point"))
             if "artifact_note" in kinds:
                 out.append(fail(8, f"sentence {i} cites an earlier summary together with a possible sensor artifact"))
@@ -166,7 +169,7 @@ def check_text(obj: dict, view: dict, record: dict, pb: Phrasebook, text_cfg: di
     names_ = sorted({p["name"].lower() for p in view["things"] if p.get("name")}, key=len, reverse=True)
     for i, t in texts:
         low = normalise(t).lower()
-        for m in re.finditer(MOVE_TOGETHER + "|" + MAY_BE_LINKED, low):
+        for m in re.finditer(MOVE_TOGETHER_ANY + "|" + MAY_BE_LINKED, low):
             after = low[m.end():].lstrip(" '\"“‘")
             hit = next((n for n in names_ if after.startswith(n) or after.startswith(" ".join(n.split()[:3]))), None) or ("each other" if re.match(r"(each other|one another)\b", after) else None)
             if hit:
@@ -184,10 +187,24 @@ def check_text(obj: dict, view: dict, record: dict, pb: Phrasebook, text_cfg: di
     # 14. a claim phrase is followed by an outcome: not a comma, "same day", "and" or "or", and not the end of the sentence
     for i, t in texts:
         low = normalise(t).lower()
-        for m in re.finditer(MOVE_TOGETHER + "|" + MAY_BE_LINKED, low):
+        for m in re.finditer(MOVE_TOGETHER_ANY + "|" + MAY_BE_LINKED, low):
             after = low[m.end():].lstrip()
             if after == "" or after[0] in ",;.:" or re.match(r"(same[- ]day|and|or)\b", after):
                 out.append(fail(14, f"{'the headline' if i == 0 else f'sentence {i}'} has a claim phrase that is not followed by an outcome"))
+    # 15. a sentence that cites an earlier conclusion also cites what it is about (it never stands alone)
+    primary = {i: t["id"] for t in view["things"] for i in t.get("ids", [t["id"]])}
+    for i, s in enumerate(sents, 1):
+        cited = {primary.get(r, r) for r in expanded[i - 1]}
+        for p in view["earlier_conclusions"]:
+            if p["id"] in s["refs"]:
+                missing = [a for a in p["about"] if a not in cited]
+                if missing:
+                    out.append(fail(15, f"sentence {i} cites an earlier conclusion but not the thing(s) it is about ({', '.join(missing)}); it must cite them in the same sentence and never stand alone"))
+    # 16. nothing about history when there is enough
+    if record.get("history_note") == "enough":
+        for i, s in enumerate(sents, 1):
+            if view["history"]["id"] in s["refs"]:
+                out.append(fail(16, f"sentence {i} cites the history note, but there is enough history: say nothing about history"))
     return out
 
 

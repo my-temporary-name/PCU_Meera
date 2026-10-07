@@ -5,3 +5,16 @@ loop:
   pi_config: config/pi_meera_iyer_v1.yaml
   paths: {findings_db: output/findings_loop.db, pi_db: output/pi_loop.db}
   pi_state_words: {candidate: early, supported: repeated, weakened: fading}      # the state word of an earlier conclusion in the view; a retracted memory has none, so no conclusion is shown for it
+  l2:                                                                             # stage L2: the loop with the models
+    paths: {findings_db: output/findings_loop_polish.db, pi_db: output/pi_loop_polish.db}      # the polish round (p-v5 / ck-v7); the L2 run's databases are kept as they are
+    previous: {findings_db: output/findings_loop_full.db, pi_db: output/pi_loop_full.db}         # read only: a text of the previous run is kept for a view whose hash is unchanged if it still passes; its situations lines likewise
+    f2_db: output/findings_engine.db                                              # read only: used only when no previous run is named
+    concurrency: 6                                                                # the versions of one week are independent; the weekly job is a barrier between weeks
+    stop: {after_calls: 40, max_first_failure: 0.45, max_call_errors: 0.10}       # checked once, after the first 40 model calls
+    read_list:                                                                    # which versions the L2 report prints
+      first_cases: ["2025-11-17", "2025-11-20"]                                   # the hospitalization week: every version of the cases opened on these dates
+      last_cases: ["2026-09-14", "2026-09-17"]
+      relationship: "steps_window_hourly@60m->hr_hour_mean"                       # every case in the weeks below that cites it
+      weeks: ["2026-W22", "2026-W28"]
+      polish_day: "2026-09-17"                                                     # the polish report prints every version of the cases opened on this date
+      seed: 20260                                                                 # the 20 versions with earlier conclusions, spread across months

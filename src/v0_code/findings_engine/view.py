@@ -38,6 +38,36 @@ def meal_context(handoffs: list[dict], pb: Phrasebook) -> str | None:
 DEFAULT_SUMMARIES = {"use": ["yesterday_day"], "notable_only": True}
 
 
+def merge_things(things: list[dict]) -> tuple[list[dict], dict]:
+    """Things with identical content (name, wording, position, outcome, statement, set: everything but the id) become one thing, the first, carrying every factor id as `ids`. Returns the
+    things and a map from every factor id to the id of the thing that stands for it. The record is never touched: this only shapes the view."""
+    members: dict[str, list[str]] = {}
+    first: dict[str, dict] = {}
+    order: list[str] = []
+    primary: dict[str, str] = {}
+    for t in things:
+        sig = json.dumps({k: v for k, v in t.items() if k != "id"}, sort_keys=True)
+        if sig not in first:
+            first[sig], members[sig] = t, []
+            order.append(sig)
+        members[sig].append(t["id"])
+        primary[t["id"]] = first[sig]["id"]
+    out = []
+    for sig in order:
+        t = first[sig]
+        out.append({"id": t["id"], "ids": members[sig], **{k: v for k, v in t.items() if k != "id"}} if len(members[sig]) > 1 else t)
+    return out, primary
+
+
+def thing_index(view: dict) -> dict:
+    """Every id a sentence may cite for a thing (the thing's own id and every merged id) -> the thing."""
+    return {i: t for t in view["things"] for i in t.get("ids", [t["id"]])}
+
+
+def _dedupe(ids: list[str], primary: dict) -> list[str]:
+    return list(dict.fromkeys(primary.get(i, i) for i in ids))
+
+
 def build_view(record: dict, handoffs: list[dict], diary: list[dict], memory: list[dict], pb: Phrasebook, tz, bands: dict, pi_items: list[dict] | None = None,
                summaries: dict | None = None) -> dict:
     """`handoffs`: the case's hand-off records in order; `diary` / `memory`: the as-of context rows (`merge_diary(...)` / `Context.state_memory`)."""
@@ -65,7 +95,9 @@ def build_view(record: dict, handoffs: list[dict], diary: list[dict], memory: li
             item["set"] = f["group"]
         things.append(item)
         listed.add(f["factor_id"])
-    sets = [{"id": g["group_id"], "reason": VIEW_REASON[g["reason"]], "members": g["members"]} for g in record["groups"] if all(m in listed for m in g["members"])]
+    things, primary = merge_things(things)
+    sets = [{"id": g["group_id"], "reason": VIEW_REASON[g["reason"]], "members": _dedupe(g["members"], primary)} for g in record["groups"] if all(m in listed for m in g["members"])]
+    sets = [g for g in sets if len(g["members"]) > 1]
     situation = {"mode": MODE_WORDS[record["mode"]],
                  "measures": [{"id": m["measure_id"], "what": pb.measure_clause(m["measure"], m["direction"], m["strength"]), "part_of_day": part_of_day(to_local(m["opened_at"], tz), bands)}
                               for m in record["measures"]]}
@@ -77,8 +109,11 @@ def build_view(record: dict, handoffs: list[dict], diary: list[dict], memory: li
     if view["not_known_yet"] is None:
         del view["not_known_yet"]
     view["diary"] = [_diary_item(e, tz, local_date, bands) for e in diary]
+    for d in view["diary"]:
+        if d.get("backs"):
+            d["backs"] = _dedupe(d["backs"], primary)
     view["earlier_summaries"] = [{"id": e["view_id"], "window": WINDOW_WORDS.get(e["use"], e["use"]), "headline": e["gist_headline"]} for e in select_summaries(memory, record, summaries)]
-    view["earlier_conclusions"] = pi_items or []
+    view["earlier_conclusions"] = [{**p, "about": _dedupe(p["about"], primary)} for p in (pi_items or [])]
     return view
 
 
@@ -182,7 +217,7 @@ def view_hash(view: dict) -> str:
 
 def view_ids(view: dict) -> set[str]:
     """Every id a sentence may cite."""
-    ids = {m["id"] for m in view["situation"]["measures"]} | {f["id"] for f in view["things"]} | {g["id"] for g in view["sets"]} | {d["id"] for d in view["diary"]}
+    ids = {m["id"] for m in view["situation"]["measures"]} | set(thing_index(view)) | {g["id"] for g in view["sets"]} | {d["id"] for d in view["diary"]}
     ids |= {s["id"] for s in view["earlier_summaries"]} | {p["id"] for p in view["earlier_conclusions"]} | {view["history"]["id"]}
     if "not_known_yet" in view:
         ids.add(view["not_known_yet"]["id"])

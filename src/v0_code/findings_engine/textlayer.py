@@ -20,35 +20,40 @@ Write:
 2. sentences: two to eight short sentences. Each sentence lists the ids of the view items it relies on. A set id counts as citing all the things in that set.
 
 RULES. Follow all of them.
-1. Write no digits, dates or times, and do not count ("once", "twice", "first", "second", "one", "two"). Use "that day", "recently", "earlier".
+1. Write no digits, dates or times, and do not count ("once", "twice", "first", "second", "one", "two"). Use "that day".
 2. Use only what is in the VIEW. Do not invent causes, places, settings or details.
 3. Each thing has a wording. Say only what its wording allows:
    - asserted: "has tended to move together with"
-   - asserted_same_day: the same, and the sentence must contain "same day"
-   - hedged, hedged_same_day: "may be linked to" (and "same day" for the second)
-   - present_only, present_only_history: say it was present, with no link. For present_only_history, add that there is not enough history yet.
+   - asserted_same_day: the same, and the sentence must contain "same day", "same-day", "that day" or "on the day"
+   - hedged, hedged_same_day: "may be linked to" (and one of those same-day phrases for the second)
+   - present_only, present_only_history: say it was present, with no link. Say nothing about history in these sentences: the history note (rule 6) is stated once.
    - event_unusual: say how unusual this event was, using the position words given
    - artifact_note: "may be a sensor artifact"
    - contrary_note: say that on days with that thing the outcome has tended to be lower
 4. Never write that something caused, triggered, explains, affects or led to anything.
 5. Things in the same set must be described together in one sentence and cite the set id. For an often_together set, say they often occur together and their separate roles cannot be told apart.
-6. If the history note says there is not enough history, say so in one sentence, cite "h1", and claim no link. If something is not known yet, say so and cite "n1".
+6. If the history note says there is not enough history, say so once, in one sentence that cites "h1" and claims no link; that one sentence covers every present_only_history thing. If the history note says there is enough history, say nothing about history and do not cite "h1". If something is not known yet, say so and cite "n1".
 7. Describe a diary entry only as it describes itself. Paraphrase; do not copy five or more words. Do not repeat numbers from it. If its note says it concerns someone else, say so, and do not describe her as unwell or as having a symptom because of it. An entry with "backs" is the entry behind the things it lists.
-8. Earlier conclusions (the p items) may be mentioned as "this has come up before" or "an early observation", only in a sentence that cites that item. They never make a statement stronger than the thing's wording. Earlier summaries (the s items) are described as "an earlier summary says ..."; never say "this has come up before" or "an early observation" about them, never combine one with a claim about a thing in the same sentence, never cite one in a sentence about an artifact_note thing, and cite earlier summaries in at most one sentence.
+8. Earlier conclusions (the p items) may be mentioned as "this has come up before" or "an early observation", only in the same sentence as the thing it is about: a sentence that cites a p item must also cite the thing(s) that item is about, and a p item never stands alone in a sentence. They never supply claim wording: a claim uses only the thing's own wording from rule 3, and a phrase such as "has repeatedly moved together with" is never copied from an earlier conclusion. They never make a statement stronger than the thing's wording. Earlier summaries (the s items) are described as "an earlier summary says ..."; never say "this has come up before" or "an early observation" about them, never combine one with a claim about a thing in the same sentence, never cite one in a sentence about an artifact_note thing, and cite earlier summaries in at most one sentence.
 9. Do not give advice, diagnoses or predictions. Do not use the words: evidence, label, relationship, factor, supported, suggestive, statistic, case, engine, memory, hand-off, group, class, exposure, exposures, entangled, bundle, pair, points.
 10. Refer to the person with "she" and "her".
 11. Never write view ids (f1, g1, m1, d1, s1, p1, h1, n1) in the text of a sentence or the headline; they go only in refs.
 12. Use each thing's phrase exactly as given, including its window phrase; do not shorten or merge phrases.
 13. Do not use "drink", "drank" or "drinking" for fluid intake.
 14. When one sentence cites things of different strengths, use "may be linked to" for the whole sentence, or put them in separate sentences.
+15. Use no clinical term (for example insulin, hypoglycemia, infection, diagnosis) unless the VIEW itself uses it.
+16. Do not write the same phrase of a thing twice in one sentence.
+17. A claim phrase ("has tended to move together with", "may be linked to") must be followed by the outcome given for that thing; never by another thing, "each other", a comma, "same day", "and" or "or", and never at the end of the sentence.
+18. Write no word with an underscore.
+19. A thing that lists several "ids" stands for all of them: cite its "id".
 
 Return only JSON: {"headline": "...", "sentences": [{"text": "...", "refs": ["f1"]}]}"""
 
 USER_TEMPLATE = "VIEW:\n{view_json}"
 RETRY_ADDENDUM = ("Your previous answer failed these checks: {failed_checks}. Rewrite it using only the VIEW, with no digits or dates, no causal words, and no statement stronger "
-                  "than the class allows.")
-PROMPT_VERSION = "p-v3"
-COMPATIBLE_PROMPTS = {"p-v3": ("p-v2", "p-v1")}   # answers made under p-v1 and p-v2 are judged under p-v3: it renames the view's words and drops one sentence, nothing else about what a text may say
+                  "than the wording allows.")
+PROMPT_VERSION = "p-v5"
+COMPATIBLE_PROMPTS = {"p-v5": ("p-v4", "p-v3", "p-v2", "p-v1")}   # answers made under an earlier prompt are judged under the current checks and kept if they pass (`from_prompt` records which prompt made them)
 
 
 def settings_key(text_cfg: dict) -> str:

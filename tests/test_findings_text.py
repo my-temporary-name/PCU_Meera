@@ -135,7 +135,7 @@ def test_the_prompt_is_the_specs_verbatim_and_carries_the_new_rules():
     assert textlayer.RETRY_ADDENDUM == retry
     p = textlayer.SYSTEM_PROMPT
     assert "A set id counts as citing all the things in that set" in p and "two to eight short sentences" in p
-    assert "concerns someone else" in p and "an earlier summary says" in p and "only in a sentence that cites that item" in p
+    assert "concerns someone else" in p and "an earlier summary says" in p and "only in the same sentence as the thing it is about" in p
 
 
 # ---- the diary entries behind a point ----------------------------------------------------------------------------------------------------------------------
@@ -392,11 +392,11 @@ def test_check_8_recurrence_wording_needs_an_earlier_conclusion_item():
     g["sentences"][0] = {"text": "This was an early observation.", "refs": ["s1"]}
     assert 8 in names(run_checks(g))
     pv = view_a(pi=PI_ITEM)
-    g["sentences"][0] = {"text": "This has come up before.", "refs": ["p1"]}
+    g["sentences"][0] = {"text": "This has come up before, that day.", "refs": ["f2", "p1"]}
     assert run_checks(g, pv) == []
-    g["sentences"][0] = {"text": "It is an early observation, and it came up before.", "refs": ["p1"]}
+    g["sentences"][0] = {"text": "It is an early observation, and it came up before, that day.", "refs": ["f2", "p1"]}
     assert run_checks(g, pv) == []
-    g["sentences"][0] = {"text": "This came up before.", "refs": ["f2"]}
+    g["sentences"][0] = {"text": "This came up before, that day.", "refs": ["f2"]}
     assert 8 in names(run_checks(g, pv))                                                          # the item exists in the view but the sentence does not cite it
 
 
@@ -471,7 +471,7 @@ def test_check_9_a_sentence_citing_an_entangled_bundle_says_so():
     view = build_view(rec, [], [], [], PB, IST, BANDS)
     assert view["sets"][0]["reason"] == "often_together"
     claim = "Short sleep the night before and missed doses on the same day have tended to move together with higher heart rate"
-    run = lambda s: check_text(entangled_answer(s), view, rec, PB, TEXT_CFG, view_ids(view))
+    run = lambda s: check_text(entangled_answer(s), view, {**rec, "history_note": "enough_for_some"}, PB, TEXT_CFG, view_ids(view))
     assert names(run(claim + ".")) == [9]
     assert names(run(claim + ", and they often occur together.")) == [9]
     assert names(run(claim + "; their separate roles cannot be told apart.")) == [9]

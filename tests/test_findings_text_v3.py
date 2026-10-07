@@ -15,8 +15,8 @@ from v0_code.findings_engine.view import banned_words_in_view, build_view, view_
 
 # ---- versions and the prompt -----------------------------------------------------------------------------------------------------------------------------------
 def test_versions_vocabulary_and_the_first_line_of_the_prompt():
-    assert textlayer.PROMPT_VERSION == "p-v3" and textcheck.CHECKS_VERSION == "ck-v5.2"
-    assert textlayer.COMPATIBLE_PROMPTS == {"p-v3": ("p-v2", "p-v1")}
+    assert textlayer.PROMPT_VERSION == "p-v5" and textcheck.CHECKS_VERSION == "ck-v7"           # (the L2 versions; see test_findings_text_v4)
+    assert textlayer.COMPATIBLE_PROMPTS == {"p-v5": ("p-v4", "p-v3", "p-v2", "p-v1")}
     p = textlayer.SYSTEM_PROMPT
     assert p.startswith("You write a short plain-language account of one situation in a person's health record.\n") and "diabetes" not in p.lower()
     assert "things that were present" in p and "sets of things" in p and "often_together" in p
@@ -143,7 +143,7 @@ def test_check_12_a_claim_whose_object_is_each_other_is_a_link_between_exposures
 
 
 def test_the_checks_version_changed_with_check_12():
-    assert textcheck.CHECKS_VERSION == "ck-v5.2"
+    assert textcheck.CHECKS_VERSION.startswith("ck-v")
 
 
 # ---- F2 final touches: check 14, underscore tokens, position phrases in check 13 ---------------------------------------------------------------------------------------
@@ -188,5 +188,5 @@ def test_position_phrases_are_exempt_from_check_13():
     assert 13 in names(check_text(g, view, record_a(), PB, TEXT_CFG, view_ids(view)))                  # other phrases still count
 
 
-def test_the_checks_version_is_5_2_and_the_prompt_version_is_unchanged():
-    assert textcheck.CHECKS_VERSION == "ck-v5.2" and textlayer.PROMPT_VERSION == "p-v3"
+def test_the_checks_and_prompt_versions_are_the_l2_ones():
+    assert textcheck.CHECKS_VERSION == "ck-v7" and textlayer.PROMPT_VERSION == "p-v5"

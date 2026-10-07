@@ -140,6 +140,16 @@ class Pi(PiReader):
         self.store.put_entry(mid, entry, finding["as_of"])
         return "written"
 
+    def replace_entry_text(self, finding_id: str, headline: str, sentences: list[str]) -> bool:
+        """The loop's barrier (stage L2): put the final text into an entry of a week that is not sealed yet. Nothing but the text changes."""
+        entry = self.store.entry_by_finding(finding_id)
+        if entry is None:
+            raise KeyError(finding_id)
+        week = week_of(entry["as_of"], self.tz)
+        if self.store.has_mid(f"pi_mid_{week.iso}", "sealed"):
+            raise SealedWeekError(f"{finding_id} belongs to {week.iso}, which is sealed")
+        return self.store.update_entry_text(finding_id, headline, sentences)
+
     # ---- the weekly job ---------------------------------------------------------------------------------------------------------------------------------
     def _through(self, key: str, week: Week, span, until: date) -> tuple:
         """The lifecycle state and the weekly labels of a relationship from the first week it was tested to `week` (a pure function of the Evidence store's daily labels, read up

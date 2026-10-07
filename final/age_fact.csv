@@ -1,0 +1,3 @@
+patient_id,field,value,as_of_date,source
+meera_iyer_v1,date_of_birth,1983-04-12,,persona_derived
+meera_iyer_v1,age_years,43,2026-09-17,persona_stated

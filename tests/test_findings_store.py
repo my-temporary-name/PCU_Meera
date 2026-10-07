@@ -151,6 +151,8 @@ def test_second_patient_text_layer_runs_on_config_alone(patient):
     ids = sorted(textlayer.view_ids(v))
     answer = {"headline": "Sugar and rest were above her usual.", "sentences": [{"text": "Her sugar was clearly above her usual.", "refs": [v["situation"]["measures"][0]["id"]]},
                                                                             {"text": "There is not enough history yet to say what usually goes with this.", "refs": ["h1"]}]}
+    if rec["history_note"] == "enough":                                                           # check 16: nothing about history when there is enough
+        answer["sentences"][1] = {"text": "It is nothing more than a plain account.", "refs": [v["situation"]["measures"][0]["id"]]}
     if "not_known_yet" in v:
         answer["sentences"].append({"text": "It is not known yet what the rest of the day held.", "refs": ["n1"]})
     r = textlayer.generate(v, rec, code_sentences(rec, pb), FakeClient([answer]), cfg.text, pb, None)

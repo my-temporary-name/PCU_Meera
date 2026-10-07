@@ -121,6 +121,15 @@ class FindingsStore:
         return {"finding_id": r[0], "view_hash": r[1], "text_source": r[2], "status": r[3], "text": json.loads(r[4]), "llm_raw": json.loads(r[5] or "[]"), "usage": json.loads(r[6] or "[]"),
                 "checks": json.loads(r[7] or "[]"), "prompt_version": r[8], "checks_version": r[9], "from_prompt": r[10], "settings_key": r[11]}
 
+    def own_row(self, finding_id: str) -> dict | None:
+        """The stored result of a version, whatever view it was made against (with the view hash it was made against), or None."""
+        r = self.conn.execute("SELECT t.finding_id, t.view_hash, t.text_source, t.status, t.text_json, l.llm_raw, l.usage_json, l.checks_json, t.prompt_version, t.checks_version, t.from_prompt "
+                              "FROM finding_text t LEFT JOIN finding_llm l USING (finding_id) WHERE t.finding_id = ?", (finding_id,)).fetchone()
+        if r is None:
+            return None
+        return {"finding_id": r[0], "view_hash": r[1], "text_source": r[2], "status": r[3], "text": json.loads(r[4]), "llm_raw": json.loads(r[5] or "[]"), "usage": json.loads(r[6] or "[]"),
+                "checks": json.loads(r[7] or "[]"), "prompt_version": r[8], "checks_version": r[9], "from_prompt": r[10]}
+
     def has_text(self, finding_id: str) -> bool:
         return self.conn.execute("SELECT 1 FROM finding_text WHERE finding_id = ?", (finding_id,)).fetchone() is not None
 

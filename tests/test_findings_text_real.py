@@ -35,7 +35,7 @@ def test_no_digit_outside_ids_and_the_text_passed_on_as_written(views):
 
     def strip(v):
         if isinstance(v, dict):
-            return {k: strip(x) for k, x in v.items() if k not in ("id", "members", "set", "about", "backs", "text", "severity_or_note", "headline")}
+            return {k: strip(x) for k, x in v.items() if k not in ("id", "ids", "members", "set", "about", "backs", "text", "severity_or_note", "headline")}
         return [strip(x) for x in v] if isinstance(v, list) else v
     import json
     for fid, v in vs.items():

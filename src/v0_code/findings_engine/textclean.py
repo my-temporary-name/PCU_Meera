@@ -1,5 +1,5 @@
 """The cleanup step of the text layer: mechanical fixes to the model's wording, run BEFORE the checks (the checks see the cleaned text). It capitalises the start of the headline
-and of every sentence, lower-cases the first letter of an earlier summary's content after "says", and strips quotes around the view's own phrases. Nothing else is touched: words,
+and of every sentence, lower-cases the first letter of an earlier summary's content after "says", strips quotes around the view's own phrases, and finishes a sentence that has no final mark with a full stop (the headline is left as it is). Nothing else is touched: words,
 refs and order stay. The raw object is never changed; the caller stores raw and cleaned."""
 
 import copy
@@ -58,4 +58,7 @@ def clean(obj: dict, view: dict) -> tuple[dict, list[str]]:
     for s in out.get("sentences") or []:
         if isinstance(s, dict) and isinstance(s.get("text"), str):
             s["text"] = _fix(s["text"], phrases, changes)
+            if s["text"].strip() and s["text"].strip()[-1] not in ".!?":
+                s["text"] = s["text"].strip() + "."
+                changes.add("punctuation_added")
     return out, sorted(changes)

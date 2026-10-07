@@ -1,0 +1,3 @@
+patient_id,allergen,reaction_type,confirmed_date,source,status
+meera_iyer_v1,Sulfa drugs,rash,2019-04-02,persona_document,active_standing_record
+meera_iyer_v1,Unknown soap/detergent,"mild skin reaction (redness, itching)",2026-01-17,context_events_2026_01 (ctx_309),resolved_2026-01-18

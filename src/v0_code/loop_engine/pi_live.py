@@ -10,6 +10,7 @@
 from datetime import datetime
 
 from v0_code.pi_engine.engine import USABLE, PiReader
+from v0_code.pi_engine.text_check import FRAME
 
 HIDDEN = ("not_mentioned", "not_known_yet")                     # wording classes the view does not show as a thing (so nothing to attach an earlier conclusion to)
 
@@ -71,9 +72,10 @@ class PiLive:
         return refs
 
 
-def earlier_conclusions(record: dict, reader: PiReader, state_words: dict) -> list[dict]:
+def earlier_conclusions(record: dict, reader: PiReader, state_words: dict, situations=None) -> list[dict]:
     """The view's `earlier_conclusions` for a stored record: for each long-term ref that has a view id, `about` (the ids of the things in the view that carry the relationship), the state word,
-    the association text and the `seen_before` band, plus the situations line when the memory has one (L1: it has none, so the key is left out)."""
+    the association text and the `seen_before` band, plus the situations line when the memory version has one (`situations(memory_id, version)`, the text overlay; none in L1 or when
+    the line is null, so the key is left out)."""
     band = {r["relationship_key"]: r["seen_before"] for r in record["repeat"]}
     shown = [f for f in record["factors"] if f["kind"] == "relationship" and f["wording_class"] not in HIDDEN]
     items = []
@@ -84,7 +86,8 @@ def earlier_conclusions(record: dict, reader: PiReader, state_words: dict) -> li
         key = ref["relationship_key"]
         item = {"id": ref["view_id"], "about": [f["factor_id"] for f in shown if f["relationship_key"] == key], "state": state_words[m["status"]], "text": " ".join(m["text"]["sentences"]),
                 "seen_before": band.get(key) or reader.get_seen_before(key, record["as_of"], record["case_id"])}
-        if (m["text"] or {}).get("situations"):
-            item["situations"] = m["text"]["situations"]
+        line = situations(ref["memory_id"], ref["version"]) if situations else None
+        if line:
+            item["situations"] = line.replace(FRAME, "").strip(" .,")                           # the list only: the frame's word "cases" is an internal word no view may carry
         items.append(item)
     return items
