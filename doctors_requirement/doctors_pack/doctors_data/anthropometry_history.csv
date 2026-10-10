@@ -1,0 +1,12 @@
+patient_id,date,weight_kg,height_cm,bmi,waist_cm,hip_cm,whr,whtr,source
+meera_iyer_v1,2021-10-12,68.8,160,26.87,85.2,101.8,0.837,0.532,synthetic_best_guess_v1 (anchors from persona)
+meera_iyer_v1,2022-02-04,69.5,160,27.15,86.0,102.2,0.841,0.537,synthetic_best_guess_v1 (anchors from persona)
+meera_iyer_v1,2022-05-12,69.0,160,26.95,85.6,102.0,0.839,0.535,synthetic_best_guess_v1 (anchors from persona)
+meera_iyer_v1,2022-09-20,68.9,160,26.91,85.8,102.1,0.84,0.536,synthetic_best_guess_v1 (anchors from persona)
+meera_iyer_v1,2023-01-20,69.8,160,27.27,86.4,102.6,0.842,0.54,synthetic_best_guess_v1 (anchors from persona)
+meera_iyer_v1,2023-06-12,70.6,160,27.58,87.0,103.0,0.845,0.544,synthetic_best_guess_v1 (anchors from persona)
+meera_iyer_v1,2023-10-04,70.2,160,27.42,86.6,102.8,0.842,0.541,synthetic_best_guess_v1 (anchors from persona)
+meera_iyer_v1,2024-03-14,69.7,160,27.23,86.2,102.6,0.84,0.539,synthetic_best_guess_v1 (anchors from persona)
+meera_iyer_v1,2024-09-24,70.4,160,27.5,87.0,103.0,0.845,0.544,synthetic_best_guess_v1 (anchors from persona)
+meera_iyer_v1,2025-03-11,70.8,160,27.66,87.6,103.4,0.847,0.547,synthetic_best_guess_v1 (anchors from persona)
+meera_iyer_v1,2025-06-17,71.0,160,27.73,88.2,103.6,0.851,0.551,synthetic_best_guess_v1 (anchors from persona)

@@ -1,0 +1,8 @@
+patient_id,relative,degree,condition,age_at_onset,event_year,premature,source
+meera_iyer_v1,Mother,first,Type 2 diabetes,58,2016,not applicable,persona_document (onset age); synthetic_best_guess_v1 (year)
+meera_iyer_v1,Father,first,Hypertension,52,2007,not applicable,persona_document (condition); synthetic_best_guess_v1 (age)
+meera_iyer_v1,Father,first,Coronary artery disease with bypass surgery,64,2019,no (male relative; premature means under 55),"persona_document (condition and year); synthetic_best_guess_v1 (his age, so not premature)"
+meera_iyer_v1,Mother,first,Cardiovascular disease,,,not documented,synthetic_best_guess_v1 (persona silent)
+meera_iyer_v1,Any first-degree relative,first,PCOS,,,not documented,synthetic_best_guess_v1 (persona silent)
+meera_iyer_v1,Any first-degree relative,first,Gestational diabetes,,,not documented,synthetic_best_guess_v1 (persona silent)
+meera_iyer_v1,Any first-degree relative,first,Known inherited or genetic condition,,,not documented,synthetic_best_guess_v1 (persona silent)

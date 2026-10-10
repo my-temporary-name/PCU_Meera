@@ -1,0 +1,6 @@
+patient_id,date,vigorous_days,vigorous_min_per_day,moderate_days,moderate_min_per_day,walking_days,walking_min_per_day,sitting_hours_weekday,met_min_week_vigorous,met_min_week_moderate,met_min_week_walking,met_min_week_total,category,source
+meera_iyer_v1,2025-09-30,0,0,1,20,4,15,9.0,0.0,80.0,198.0,278.0,low,synthetic_best_guess_v1 (consistent with the steps and sedentary files)
+meera_iyer_v1,2025-12-31,0,0,1,15,4,15,9.5,0.0,60.0,198.0,258.0,low,synthetic_best_guess_v1 (consistent with the steps and sedentary files)
+meera_iyer_v1,2026-03-31,0,0,0,0,3,15,10.0,0.0,0.0,148.5,148.5,low,synthetic_best_guess_v1 (consistent with the steps and sedentary files)
+meera_iyer_v1,2026-06-30,0,0,2,20,5,20,9.0,0.0,160.0,330.0,490.0,low,synthetic_best_guess_v1 (consistent with the steps and sedentary files)
+meera_iyer_v1,2026-09-17,0,0,1,15,4,15,9.5,0.0,60.0,198.0,258.0,low,synthetic_best_guess_v1 (consistent with the steps and sedentary files)

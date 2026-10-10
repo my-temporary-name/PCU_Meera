@@ -1,0 +1,11 @@
+patient_id,domain,value,detail,as_of_date,source
+meera_iyer_v1,Tobacco,never smoker,No smoking,2026-09-17,persona_document
+meera_iyer_v1,Alcohol,"occasional, social","Wine or beer about 1 to 2 times a month, slightly more in stressful periods; 6 diary entries in the data year (25 Dec to 14 Feb)",2026-09-17,persona_document
+meera_iyer_v1,Caffeine,3 to 4 cups a day in stressful periods,Occasional dependency,2026-09-17,persona_document
+meera_iyer_v1,Other substances,none,,2026-09-17,synthetic_best_guess_v1 (persona silent)
+meera_iyer_v1,Occupation,"Finance Manager, mid-size manufacturing company",Full-time; high-pressure quarter-end cycles; moderate travel (2 to 3 trips a quarter),2026-09-17,persona_document
+meera_iyer_v1,Occupational pattern flag,adverse,"Quarter-end deadlines, travel, long screen time (7 to 9 hours a day)",2026-09-17,persona_document (pattern); synthetic_best_guess_v1 (flag)
+meera_iyer_v1,Household,"Married, two children (12 and 15); ageing parents nearby with occasional caregiving",Primary logistical load falls on her,2026-09-17,persona_document
+meera_iyer_v1,Diet pattern,irregular timing,Breakfast often skipped or rushed; canteen or delivery lunch on office days; dinner about 7 pm on calm days and 9:30 to 10 pm in crunch periods; occasional overeating at social events,2026-09-17,persona_document
+meera_iyer_v1,Sleep source,wearable (synthetic),Average of the prior 7 nights should name this source,2026-09-17,synthetic_best_guess_v1
+meera_iyer_v1,Physical activity,"low, irregular","See ipaq_short_quarterly.csv; wearable median 2,106 steps a day",2026-09-17,synthetic_best_guess_v1 (consistent with the wearable data)

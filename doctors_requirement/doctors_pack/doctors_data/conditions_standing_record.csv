@@ -1,0 +1,15 @@
+patient_id,condition,status,diagnosed_date,date_basis,note,source
+meera_iyer_v1,Type 2 diabetes mellitus,active,2022-02-04,persona_stated,Oral therapy; dose adjusted once on 2023-06-15; second agent considered but not started,persona_document
+meera_iyer_v1,Hypertension (moderate),"active, medicated",2023-01-20,year stated (2023); day is a best guess,Amlodipine 5 mg daily from the same date,persona_document (year); synthetic_best_guess_v1 (day)
+meera_iyer_v1,Subclinical hypothyroidism,"active, managed",2021-10-12,year stated (2021); day is a best guess,Levothyroxine 50 mcg daily from 2021-11-01; pre-dates the diabetes,persona_document (year); synthetic_best_guess_v1 (day)
+meera_iyer_v1,Mild anxiety,"self-reported, intermittent",,not dated,Not formally diagnosed; worse in caregiving-heavy or work-heavy stretches,persona_document
+meera_iyer_v1,Perimenopause,active,2025-02-01,approximate (persona: early 2025),Irregular cycles of 24 to 45 days; some anovulatory months,persona_document
+meera_iyer_v1,"Dyslipidemia (high triglycerides, low HDL-C)","active, untreated",2022-02-04,derived from the first panel at diagnosis,TG 190 and HDL-C 44 mg/dL at diagnosis; no lipid-lowering therapy,synthetic_best_guess_v1 (derived from labs)
+meera_iyer_v1,"Obesity (BMI 25 or more, ICMR-INDIAB definition)",active,2022-02-04,derived from anthropometry,"BMI 27.1 at diagnosis, 28.2 at the reference date",synthetic_best_guess_v1 (derived from anthropometry)
+meera_iyer_v1,Hepatic steatosis / MASLD,active,2025-06-17,ultrasound date,Grade 1 steatosis on ultrasound; type 2 diabetes and overweight; occasional alcohol,synthetic_best_guess_v1
+meera_iyer_v1,Atherosclerotic cardiovascular disease,none documented,,,Persona lists no cardiovascular disease for her,synthetic_best_guess_v1 (persona silent)
+meera_iyer_v1,Heart failure,none documented,,,,synthetic_best_guess_v1 (persona silent)
+meera_iyer_v1,Chronic kidney disease,none documented,,,eGFR 93.7 and UACR under 30 mg/g; no kidney damage marker,synthetic_best_guess_v1 (derived from labs)
+meera_iyer_v1,Polycystic ovary syndrome,none documented,,,Not in the persona's comorbidity list; irregular cycles are attributed to perimenopause,synthetic_best_guess_v1 (persona silent)
+meera_iyer_v1,Gestational diabetes (history),none documented,,,"Two children, ages 12 and 15; no complications recorded",synthetic_best_guess_v1 (persona silent)
+meera_iyer_v1,"Retinopathy, neuropathy, nephropathy",none documented,,,No complication recorded,synthetic_best_guess_v1 (persona silent)

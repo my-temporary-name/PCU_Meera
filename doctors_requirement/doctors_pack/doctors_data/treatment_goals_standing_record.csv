@@ -1,0 +1,10 @@
+patient_id,goal_domain,target,rationale,set_by,set_date,source
+meera_iyer_v1,HbA1c,under 7.0 %,Individualized ADA goal for a non-pregnant adult at low hypoglycemia risk on metformin,clinic (best guess),2022-05-12,synthetic_best_guess_v1 (doctor to confirm)
+meera_iyer_v1,LDL-C,under 70 mg/dL,"ADA 2026 as quoted in NMG Lite: diabetes aged 40 to 75 at higher cardiovascular risk (diabetes, treated hypertension, central adiposity, father with coronary disease)",clinic (best guess),2025-03-11,synthetic_best_guess_v1 (doctor to confirm)
+meera_iyer_v1,Blood pressure,under 130/80 mmHg,Common target for diabetes with hypertension; not stated in NMG Lite,clinic (best guess),2023-01-20,synthetic_best_guess_v1 (doctor to confirm)
+meera_iyer_v1,Triglycerides,under 150 mg/dL,NMG Lite Green band,NMG Lite,,synthetic_best_guess_v1 (taken from the band)
+meera_iyer_v1,TG/HDL-C,under 2.0,"NMG Lite Green band (operational, not a validated cutoff)",NMG Lite,,synthetic_best_guess_v1 (taken from the band)
+meera_iyer_v1,Sleep,at least 7 hours a night,"AASM and SRS consensus, as cited in NMG Lite",NMG Lite,,synthetic_best_guess_v1 (taken from the band)
+meera_iyer_v1,Physical activity,IPAQ moderate category or higher,NMG Lite Green band,NMG Lite,,synthetic_best_guess_v1 (taken from the band)
+meera_iyer_v1,Weight,reduce about 5 % (to about 68 kg) over 12 months,Common goal for diabetes with overweight; not in NMG Lite,clinic (best guess),2025-03-11,synthetic_best_guess_v1 (doctor to confirm)
+meera_iyer_v1,Kidney monitoring,eGFR and UACR at least yearly,ADA 2026 as quoted in NMG Lite section 5,NMG Lite,,synthetic_best_guess_v1 (taken from the document)

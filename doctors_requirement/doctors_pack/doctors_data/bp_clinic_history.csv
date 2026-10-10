@@ -1,0 +1,19 @@
+patient_id,date,systolic,diastolic,position,measured_by,source
+meera_iyer_v1,2021-10-12,126,80,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2022-02-04,130,84,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2022-05-12,128,82,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2022-09-20,132,84,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2022-12-09,142,92,seated,clinic,synthetic_best_guess_v1 (2022-12-09 and 2023-01-20 anchor the 2023 hypertension diagnosis)
+meera_iyer_v1,2023-01-20,144,94,seated,clinic,synthetic_best_guess_v1 (2022-12-09 and 2023-01-20 anchor the 2023 hypertension diagnosis)
+meera_iyer_v1,2023-02-24,134,86,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2023-06-12,132,84,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2023-10-04,130,82,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2024-03-14,128,82,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2024-09-24,132,84,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2025-03-11,130,84,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2025-06-17,132,86,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2025-09-15,132,84,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2025-12-18,136,88,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2026-03-06,128,82,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2026-06-17,130,82,seated,clinic,synthetic_best_guess_v1
+meera_iyer_v1,2026-09-17,138,90,seated,clinic,synthetic_best_guess_v1

@@ -12,10 +12,17 @@ import webbrowser
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+DOCTORS = HERE.parent / "doctors_requirement" / "nmg_view"
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map, ".js": "text/javascript", ".json": "application/json"}
+
+    def translate_path(self, path):
+        # /doctors/... is the doctor's view, which lives in doctors_requirement/nmg_view (kept apart from this dashboard)
+        if path.startswith("/doctors/"):
+            return str(DOCTORS / path[len("/doctors/"):].split("?")[0].split("#")[0])
+        return super().translate_path(path)
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")

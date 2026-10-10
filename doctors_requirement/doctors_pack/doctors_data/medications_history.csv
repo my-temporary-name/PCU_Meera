@@ -1,0 +1,8 @@
+patient_id,medication,indication,dose,frequency,start_date,end_date,status,data_adherence_id,source
+meera_iyer_v1,Levothyroxine,Subclinical hypothyroidism,50 mcg,once daily,2021-11-01,,active,med_004_levothyroxine,persona_document
+meera_iyer_v1,Metformin,Type 2 diabetes,500 mg,twice daily,2022-02-10,2023-06-14,superseded by the higher dose,"(unused id med_001, to confirm)",persona_document
+meera_iyer_v1,Amlodipine,Hypertension,5 mg,once daily,2023-01-20,,active,med_003_amlodipine,persona_document
+meera_iyer_v1,Metformin,Type 2 diabetes,1000 mg,twice daily,2023-06-15,,active,med_002_metformin,persona_document (dose raised after a suboptimal HbA1c)
+meera_iyer_v1,Lipid-lowering therapy,,,,,,none,,synthetic_best_guess_v1 (persona silent)
+meera_iyer_v1,Glucocorticoids and other metabolically relevant drugs,,,,,,none,,synthetic_best_guess_v1 (persona silent)
+meera_iyer_v1,Second glucose-lowering agent,Type 2 diabetes,,,,,"considered, not started (persona: borderline candidate)",,persona_document
