@@ -33,13 +33,9 @@ export function ago(days) {
 }
 
 const PV = { best_guess: ['best guess', 'Invented for this demonstration. No doctor has reviewed it.'], persona: ['persona', 'Stated in the persona document.'], mixed: ['persona + best guess', 'The year or fact is stated in the persona; the day or detail is a best guess.'] };
-export function pv(b) {
-  if (!b || b === 'data') return null;
-  const [t, tip] = PV[b] || [b, ''];
-  return h('span', { class: `pv ${b}`, title: tip }, t);
-}
+export function pv() { return null; } // provenance badges are not shown in this view
 
-// a small trend line for a tile: no axes, a dashed goal line, a dot for every dated value on lab-type series (hollow = best guess)
+// a small trend line for a tile: no axes, a dashed goal line, a dot for every dated value on lab-type series 
 export function spark(points, { goal = null, dots = true } = {}) {
   const W = 100, H = 30, pad = 3;
   const el = svg('svg', { class: 'spark', viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', 'aria-hidden': 'true' });

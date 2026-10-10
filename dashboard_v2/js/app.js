@@ -29,7 +29,7 @@ function buildSidebar() {
   const lastMonth = S.months[S.months.length - 1];
   const items = [
     ['Patient timeline', [['year', '#/year', 'year', 'Full year'], ['month', `#/month/${lastMonth}`, 'month', 'Months'], ['week', `#/week/${mondayOf(S.last)}`, 'week', 'Weeks'], ['labs', '#/labs', 'lab', 'Labs & body']]],
-    ['Pipeline', [['pipeline', '#/pipeline', 'flow', 'Overview'], ['baselines', '#/baselines', 'base', 'Her baseline'], ['cases', '#/cases', 'case', 'Cases & alerts'], ['pi', '#/pi', 'pi', 'PI notes'], ['quality', '#/quality', 'check', 'Quality']]],
+    ['Pipeline', [['pipeline', '#/pipeline', 'flow', 'Overview'], ['baselines', '#/baselines', 'base', 'Her baseline'], ['cases', '#/cases', 'case', 'Cases & alerts'], ['pi', '#/pi', 'pi', 'PI notes']]],
     ['Clinical', [['doctors', '#/doctors', 'lab', "Doctor's view"]]],
     ['Reference', [['sources', '#/sources', 'data', 'Data sources & glossary']]],
   ];
