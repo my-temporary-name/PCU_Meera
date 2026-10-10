@@ -16,8 +16,9 @@ const VIEWS = {
   pi: () => import('./views/pi.js'),
   quality: () => import('./views/quality.js'),
   baselines: () => import('./views/baselines.js'),
+  doctors: () => import('./views/doctors.js'),
 };
-const NAV_SECTION = { year: 'year', month: 'month', week: 'week', labs: 'labs', sources: 'sources', pipeline: 'pipeline', stage: 'pipeline', cases: 'cases', case: 'cases', pi: 'pi', quality: 'quality', baselines: 'baselines' };
+const NAV_SECTION = { year: 'year', month: 'month', week: 'week', labs: 'labs', sources: 'sources', pipeline: 'pipeline', stage: 'pipeline', cases: 'cases', case: 'cases', pi: 'pi', quality: 'quality', baselines: 'baselines', doctors: 'doctors' };
 
 function parse() {
   const parts = (location.hash.replace(/^#\/?/, '') || 'year').split('/').map(decodeURIComponent);
@@ -29,6 +30,7 @@ function buildSidebar() {
   const items = [
     ['Patient timeline', [['year', '#/year', 'year', 'Full year'], ['month', `#/month/${lastMonth}`, 'month', 'Months'], ['week', `#/week/${mondayOf(S.last)}`, 'week', 'Weeks'], ['labs', '#/labs', 'lab', 'Labs & body']]],
     ['Pipeline', [['pipeline', '#/pipeline', 'flow', 'Overview'], ['baselines', '#/baselines', 'base', 'Her baseline'], ['cases', '#/cases', 'case', 'Cases & alerts'], ['pi', '#/pi', 'pi', 'PI notes'], ['quality', '#/quality', 'check', 'Quality']]],
+    ['Clinical', [['doctors', '#/doctors', 'lab', "Doctor's view"]]],
     ['Reference', [['sources', '#/sources', 'data', 'Data sources & glossary']]],
   ];
   const nav = h('nav', { class: 'nav' });

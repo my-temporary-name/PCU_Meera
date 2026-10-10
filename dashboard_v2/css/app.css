@@ -220,3 +220,4 @@ input[type=search], select { font: inherit; padding: 7px 10px; border-radius: 10
   body { background: #fff; }
   .card { box-shadow: none; break-inside: avoid; }
 }
+.doctors-frame { width: 100%; height: calc(100vh - 150px); min-height: 560px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); display: block; }
