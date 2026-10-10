@@ -66,14 +66,14 @@ function tilesFor(id) {
       factTile('Home reading, latest', [`${bp.last.sys}/${bp.last.dia}`, ' ', h('small', {}, 'mmHg')], `${fmtDate(bp.last.d)} · ${ago(daysBetween(bp.last.d, AS_OF))}`, [spark(data.series.bp_sys.slice(-90), { goal: g ? g.value : null, dots: false }), h('div', { class: 'cmp' }, 'Median of the year ', h('b', {}, `${bp.median[0]}/${bp.median[1]}`), ` · range ${bp.range_sys[0]}–${bp.range_sys[1]} / ${bp.range_dia[0]}–${bp.range_dia[1]}`)]),
       factTile('Home mean, last 28 days', [`${bp.mean_last28[0]}/${bp.mean_last28[1]}`, ' ', h('small', {}, 'mmHg')], `${bp.n_last28} readings`, [data.vars.bp_sys?.direction ? h('div', { class: 'cmp', title: 'Last 28 days (median) against the median of the 90 days that end 28 days before the latest date.' }, 'Systolic vs her baseline ', h('b', {}, fv('bp_sys', data.vars.bp_sys.baseline.v)), ' · ', dirChip(data.vars.bp_sys.direction, data.vars.bp_sys.direction.change, 1)) : null, h('div', { class: 'cmp muted' }, `${bp.share_130_80}% of home readings at or above 130 or 80 · ${bp.share_140_90}% at or above 140 or 90 (descriptive shares, not signals)`)]),
       varTile('bp_clinic_sys', { label: 'Clinic reading, latest', mainTxt: `${cs.latest.v}/${cd.latest.v}`, unit: 'mmHg' }),
-      factTile('Goal and treatment', g ? [`under ${g.value}/${g.value2}`, ' ', h('small', {}, 'mmHg')] : 'no goal', g ? 'set by the clinic (a best guess, to be confirmed)' : '', [h('div', { class: 'cmp' }, 'Amlodipine 5 mg daily since ', h('b', {}, fmtDate(S.meds.find((m) => /amlodipine/i.test(m.name)).start)), ' · hypertension diagnosed ', fmtDate(S.conds.find((x) => /hypertension/i.test(x.name)).date)), h('div', { class: 'cmp muted' }, R.domains[2].aboveGoalLatest ? 'The latest home and clinic readings are above the goal (a description, not a signal).' : 'The latest readings are within the goal.')], g ? g.b : null),
+      factTile('Goal and treatment', g ? [`under ${g.value}/${g.value2}`, ' ', h('small', {}, 'mmHg')] : 'no goal', g ? 'set by the clinic' : '', [h('div', { class: 'cmp' }, 'Amlodipine 5 mg daily since ', h('b', {}, fmtDate(S.meds.find((m) => /amlodipine/i.test(m.name)).start)), ' · hypertension diagnosed ', fmtDate(S.conds.find((x) => /hypertension/i.test(x.name)).date)), h('div', { class: 'cmp muted' }, R.domains[2].aboveGoalLatest ? 'The latest home and clinic readings are above the goal (a description, not a signal).' : 'The latest readings are within the goal.')], g ? g.b : null),
     ];
   }
   if (id === 'lipids') {
     const rx = R.domains.find((d) => d.id === 'lipids').treatment;
     return [varTile('ldl', { goal: gLdl ? gLdl.value : null }), varTile('tg', { goal: 150 }), varTile('hdl', { goal: 50 }), varTile('tg_hdl', { goal: 2 }), varTile('nonhdl'), varTile('tc'), varTile('apob'),
       factTile('Lp(a)', [num(data.vars.lpa.latest.v), ' ', h('small', {}, 'nmol/L')], `${fmtDate(data.vars.lpa.latest.d)} · measured once in adulthood (L5)`, [h('div', { class: 'cmp muted' }, 'Risk-enhancing at 125 nmol/L or more; not serially monitored.')], data.vars.lpa.latest.b),
-      factTile('Lipid-lowering treatment', rx.replace('No lipid-lowering therapy', 'None'), gLdl ? `LDL-C goal under ${gLdl.value} mg/dL (best guess)` : '', [])];
+      factTile('Lipid-lowering treatment', rx.replace('No lipid-lowering therapy', 'None'), gLdl ? `LDL-C goal under ${gLdl.value} mg/dL ` : '', [])];
   }
   if (id === 'kidney') return [varTile('egfr'), varTile('creat'), varTile('uacr')];
   if (id === 'liver') {
@@ -116,7 +116,7 @@ const EVKEY = { bp: 'bp_clinic_sys', liver: 'alt' };
 
 function refsFor(key) {
   const sex = R.sex, gHb = goalOf(data, 'HbA1c'), gLdl = goalOf(data, 'LDL-C'), gBp = goalOf(data, 'Blood pressure');
-  const goal = (y, t) => ({ y, label: `${t} · best guess`, tone: 'goal' });
+  const goal = (y, t) => ({ y, label: `${t}`, tone: 'goal' });
   const m = {
     bmi: [{ y: 23, label: 'A2: 23' }, { y: 25, label: 'A3: 25' }], waist: [{ y: sex === 'male' ? 90 : 80, label: `A3: ${sex === 'male' ? 90 : 80} cm` }], whr: [{ y: sex === 'male' ? 0.9 : 0.8, label: `A2: ${sex === 'male' ? 0.9 : 0.8}` }],
     whtr: [{ y: 0.5, label: 'A2: 0.50' }, { y: 0.55, label: 'A3: 0.55' }], weight: [goal(68, 'goal 68 kg')],
@@ -196,8 +196,8 @@ function trendPanel(dom) {
     chartEl.style.height = (lanesOn.meds ? 470 : 420) + 'px';
     charts.set(dom.id, trendChart(chartEl, spec, lanesData(), data.events));
     legend.replaceChildren(...[
-      h('span', {}, h('i', {}), 'value (solid line)'), h('span', {}, h('i', { class: 'dot fill' }), 'recorded value'), h('span', {}, h('i', { class: 'dot' }), 'hollow = best guess'),
-      h('span', {}, h('i', { class: 'band' }), 'baseline window and last 28 days'), h('span', {}, h('i', { class: 'dash' }), 'reference line with its rule ID; "goal" = best guess'),
+      h('span', {}, h('i', {}), 'value (solid line)'), h('span', {}, h('i', { class: 'dot fill' }), 'recorded value'),
+      h('span', {}, h('i', { class: 'band' }), 'baseline window and last 28 days'), h('span', {}, h('i', { class: 'dash' }), 'reference line with its rule ID'),
       spec.zones && spec.zones.length ? h('span', {}, h('i', { class: 'zone' }), 'shaded zones: green, amber, red as the rules define them (a zone is not a diagnosis)') : null,
       spec.offscale && spec.offscale.length ? h('span', {}, 'Off the chart: ', spec.offscale.map((r) => [rid(r.label.split(':')[0]), ` ${r.label.split(': ')[1] || r.label} `])) : null,
       spec.extra && spec.extra.length ? h('span', {}, h('i', { class: 'dot' }), 'estimated HbA1c from CGM (GMI)') : null, h('span', { class: 'muted' }, 'Hold Shift and scroll to zoom; drag to move.')].filter(Boolean));
@@ -248,12 +248,12 @@ function allValuesPanel(dom) {
 }
 
 // ---- header and route -----------------------------------------------------------------------------------------------------------------------------------
-const NAVL = [['', 'Overview'], ['review', 'Suggested review'], ['notices', 'Read with the values'], ['graphs', 'All graphs'], ['rules', 'All rules']];
+const NAVL = [['', 'Overview'], ['review', 'Suggested review'], ['notices', 'Read with the values'], ['graphs', 'All graphs']];
 function topbar(route) {
   const t = document.documentElement.dataset.theme;
   return h('header', { class: 'topbar' }, EMBED ? null : h('div', { class: 'brand' }, h('span', { class: 'brand-mark', html: '<svg viewBox="0 0 24 24"><path d="M3 13h4l2.5-6 4 12 2.5-6h5"/></svg>' }), "Doctor's view"),
     h('nav', { class: 'tnav' }, NAVL.map(([k, t2]) => h('a', { href: `#/${k}`, class: (route.page === k || (k === '' && route.page === 'd')) ? 'on' : '' }, t2))),
-    h('span', { class: 'top-sp' }), h('span', { class: 'chip primary' }, `${data.meta.patient} · ${data.standing.age.age_years} · ${data.standing.sex.sex}`), h('span', { class: 'chip' }, `As of ${fmtDate(AS_OF)}`), h('span', { class: 'chip ep' }, 'synthetic'),
+    h('span', { class: 'top-sp' }), route.page === '' ? null : h('span', { class: 'chip primary' }, `${data.meta.patient} · ${data.standing.age.age_years} · ${data.standing.sex.sex}`), h('span', { class: 'chip' }, `As of ${fmtDate(AS_OF)}`), h('span', { class: 'chip ep' }, 'synthetic'),
     EMBED ? null : h('button', { class: 'btn', type: 'button', onclick: () => window.print() }, 'Print'),
     EMBED ? null : h('button', { class: 'btn', type: 'button', title: 'Light or dark theme', onclick: () => { const n = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = n; try { localStorage.setItem('theme', n); } catch (e) { /* ignore */ } go(); } }, t === 'dark' ? 'Light' : 'Dark'));
 }
@@ -262,7 +262,6 @@ function topbar(route) {
 function sentence() {
   return h('section', { class: 'stmtbar' }, h('div', { class: 'stmt' }, SENTENCE),
     h('details', { class: 'about' }, h('summary', {}, 'About this view'),
-      h('div', { class: 'small' }, 'Everything here is synthetic. A value from the existing data files carries no badge. ', pv('persona'), ' is stated in the persona document; ', pv('best_guess'), ' was invented for this demonstration and has not been reviewed by a doctor. This view reads only CSV files and uses nothing from the pipeline.'),
       h('div', { class: 'small' }, 'Direction words (up, down, steady), her baseline and "since diagnosis" are display conventions with invented tolerances, not signals and not diagnoses.'),
       h('div', { class: 'sigkey' }, [['green', 'Green', 'lower concern'], ['amber', 'Amber', 'increased attention'], ['red', 'Red', 'high attention'], ['none', 'No band', 'the document gives no band, or data is missing: values and trend only']].map(([c, t, d]) => h('div', {}, sigPill(c), h('span', {}, h('b', {}, t), ' ', d)))),
       h('div', { class: 'small' }, 'Signals are per domain and never combined into one colour. Hover a rule ID (A3, G4, L3…) for its text.')));
@@ -271,17 +270,23 @@ function sentence() {
 function patient() {
   const S = data.standing, st = R.state, age = S.age.age_years;
   const dxAge = st.since ? daysBetween(st.since, AS_OF) : null;
-  const yrs = dxAge != null ? `${Math.floor(dxAge / 365.25)} years ${Math.round((dxAge % 365.25) / 30.4)} months` : '';
+  const yrs = dxAge != null ? `${Math.floor(dxAge / 365.25)} y ${Math.round((dxAge % 365.25) / 30.4)} m` : '';
   const active = S.conds.filter((c) => /active|self-reported/i.test(c.status) && !/none/i.test(c.status));
-  return h('section', { class: 'pstrip' },
-    h('div', { class: 'pbox' }, h('div', { class: 'pk' }, 'Patient'), h('div', { class: 'pbig' }, data.meta.patient), h('div', { class: 'pline' }, `${S.sex.sex[0].toUpperCase() + S.sex.sex.slice(1)}, ${age} years`), h('div', { class: 'pline' }, S.life.find((x) => x.domain === 'Occupation').value), h('div', { class: 'pline muted' }, `Date of birth ${fmtDate(S.age.date_of_birth)}`)),
-    h('div', { class: 'pbox' }, h('div', { class: 'pk' }, 'Glycemic state'), h('div', { class: 'pbig' }, st.name), h('div', { class: 'pline' }, st.since ? `since ${fmtDate(st.since)} (${yrs})` : ''), h('div', { class: 'dom-rules' }, rid(st.rule))),
-    h('div', { class: 'pbox' }, h('div', { class: 'pk' }, 'Conditions'), h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '5px' } }, active.map((c) => h('span', { class: 'chip wrap', title: `${c.note}${c.date ? '\nDate: ' + c.date + ' (' + c.date_basis + ')' : ''}` }, c.name.replace(/ \(.*\)$/, ''), c.date ? ` ${c.date.slice(0, 4)}` : '', ' ', pv(c.b)))),
-      h('div', { class: 'pline muted', title: 'These are "persona silent", not clinical findings.' }, 'None documented: ASCVD, heart failure, CKD, PCOS, gestational diabetes.')),
-    h('div', { class: 'pbox' }, h('div', { class: 'pk' }, 'Medicines (taken, last 90 days)'),
-      S.meds.filter((m) => m.status === 'active').map((m) => { const a = data.adherence[m.adherence_id]; return h('div', { class: 'med' }, h('span', {}, h('b', {}, m.name), ` ${m.dose}, ${m.freq}`), a ? h('span', { class: 'num', title: `Whole year ${a.year}%` }, h('span', { class: 'adh' }, h('i', { style: `width:${a.last90}%` })), `${a.last90}%`) : h('span'), h('span', { class: 'd' }, `since ${fmtDate(m.start)} · ${m.indication}`)); }),
-      h('div', { class: 'pline muted' }, 'No lipid-lowering therapy, no glucocorticoids.'),
-      h('div', {}, S.alg.filter((a) => /active/i.test(a.status)).map((a) => h('span', { class: 'chip wrap', style: { background: 'var(--bad-soft)', color: 'var(--ink)' }, title: `${a.reaction}; confirmed ${a.date}` }, 'Allergy: ', a.name, ' (', a.reaction, ')')))));
+  const sx = S.sex.sex[0].toUpperCase() + S.sex.sex.slice(1);
+  const col = (title, sub, ...kids) => h('div', { class: 'pb-col' }, h('div', { class: 'pb-k' }, title, sub ? h('small', {}, sub) : null), ...kids);
+  return h('section', { class: 'pband' },
+    col('Patient', null,
+      h('div', { class: 'pb-name' }, data.meta.patient),
+      h('div', { class: 'pb-line' }, `${sx} · ${age} years`), h('div', { class: 'pb-line muted' }, `Born ${fmtDate(S.age.date_of_birth)}`),
+      h('div', { class: 'pb-line' }, S.life.find((x) => x.domain === 'Occupation').value),
+      h('div', { class: 'pb-state', title: 'Diagnosed 2022-02-04. Prediabetes (S3) does not apply: diabetes is established.' }, h('b', {}, st.name), h('span', {}, st.since ? `since ${fmtDate(st.since)} (${yrs})` : ''), rid(st.rule))),
+    col('Conditions', null,
+      h('div', { class: 'pb-chips' }, active.map((c) => h('span', { class: 'chip wrap', title: `${c.note}${c.date ? '\nDate: ' + c.date + ' (' + c.date_basis + ')' : ''}` }, c.name.replace(/ \(.*\)$/, ''), c.date ? ` ${c.date.slice(0, 4)}` : ''))),
+      h('div', { class: 'pb-note' }, 'Not documented: ASCVD, heart failure, CKD, PCOS, gestational diabetes.')),
+    col('Medicines', 'taken, last 90 days',
+      h('div', { class: 'pb-meds' }, S.meds.filter((m) => m.status === 'active').map((m) => { const a = data.adherence[m.adherence_id]; return h('div', { class: 'pb-med', title: `Since ${fmtDate(m.start)} · ${m.indication}${a ? '\nWhole year ' + a.year + '%' : ''}` }, h('span', {}, h('b', {}, m.name), ` ${m.dose}, ${m.freq}`), a ? h('span', { class: 'num' }, h('span', { class: 'adh' }, h('i', { style: `width:${a.last90}%` })), `${a.last90}%`) : null); })),
+      h('div', { class: 'pb-note' }, 'No lipid-lowering therapy, no glucocorticoids.'),
+      S.alg.filter((al) => /active/i.test(al.status)).map((al) => h('div', { class: 'pb-allergy', title: `${al.reaction}; confirmed ${al.date}` }, 'Allergy', h('b', {}, `${al.name} (${al.reaction})`)))));
 }
 
 // three headline numbers per domain for its overview card
@@ -300,11 +305,17 @@ function keyFacts(id) {
 
 function overviewPage() {
   const card = (dom) => h('a', { class: `dcard ${dom.signal}`, href: `#/d/${dom.id}` },
-    h('div', { class: 'dc-top' }, sigPill(dom.signal), h('span', { class: 'dc-name' }, dom.name)),
-    h('div', { class: 'dom-rules' }, dom.rules.map(rid), dom.also.length ? [h('span', { class: 'muted', style: { fontSize: '11.5px' } }, 'also met:'), dom.also.map(rid)] : null, dom.signal === 'none' ? h('span', { class: 'muted', style: { fontSize: '11.5px' } }, 'the document gives no band') : null),
+    h('div', { class: 'dc-top' }, h('span', { class: 'dc-name' }, dom.name)),
+    h('div', { class: 'dom-rules' }, dom.rules.map(rid), dom.also.length ? [h('span', { class: 'muted', style: { fontSize: '11.5px' } }, 'also met:'), dom.also.map(rid)] : null, dom.signal === 'none' ? h('span', { class: 'muted', style: { fontSize: '11.5px' } }, 'no priority defined') : null),
     h('div', { class: 'dc-facts' }, keyFacts(dom.id).map(([l, v, u]) => h('div', {}, h('span', { class: 'fl' }, l), h('span', { class: 'fv num' }, v, ' ', h('small', {}, u))))),
     h('span', { class: 'dc-go' }, 'Open ›'));
-  return [patient(), h('section', {}, h('div', { class: 'card-head', style: { padding: '0 4px' } }, h('div', {}, h('h2', {}, 'Domains'), h('div', { class: 'sub' }, 'One card per domain, never combined into one colour. Open a domain for its values, trend, rules and events.'))), h('div', { class: 'dgrid8' }, R.domains.map(card)))];
+  const GROUPS = [['red', 'high attention'], ['amber', 'increased attention'], ['green', 'lower concern'], ['none', 'no priority defined']];
+  const groups = GROUPS.map(([sig, desc]) => [sig, desc, R.domains.filter((d) => d.signal === sig)]).filter((g) => g[2].length);
+  return [patient(), h('section', { class: 'domains' },
+    h('div', { class: 'dom-intro' }, h('h2', {}, 'Domains'),
+      h('details', { class: 'about' }, h('summary', {}, 'About the data'),
+        h('div', { class: 'small' }, 'Direction words (up, down, steady), her baseline and "since diagnosis" are display conventions with invented tolerances, not signals and not diagnoses. Hover a rule ID (A3, G4, L3…) for its text.'))),
+    groups.map(([sig, desc, list]) => h('div', { class: 'sgroup' }, h('div', { class: 'sg-head' }, sigPill(sig), h('span', { class: 'muted' }, `${list.length} ${list.length === 1 ? 'domain' : 'domains'} · ${desc}`)), h('div', { class: 'dgrid8' }, list.map(card))))) ];
 }
 
 function domainPage(id, tab, key) {
@@ -337,7 +348,7 @@ function followup() {
 }
 
 function notices() {
-  return h('section', { class: 'card' }, h('div', { class: 'card-head' }, h('div', {}, h('h2', {}, 'Read these with the values'), h('div', { class: 'sub' }, 'Five things about this data that a reader needs to know. They state what is in the data and do not explain it.'))),
+  return h('section', { class: 'card' }, h('div', { class: 'card-head' }, h('div', {}, h('h2', {}, 'Read these with the values'), h('div', { class: 'sub' }, 'A few things about this data that a reader needs to know. They state what is in the data and do not explain it.'))),
     h('div', { class: 'notices' }, R.notices.map((n) => h('div', { class: 'notice' }, h('b', {}, h('span', { class: 'n' }, n.id), n.title), h('span', {}, n.text)))));
 }
 
@@ -383,7 +394,7 @@ function graphsPage() {
       h('label', {}, h('input', { type: 'checkbox', checked: gState.link ? true : null, onchange: (e) => { gState.link = e.target.checked; draw(); } }), 'Link the cursor across graphs'));
   };
   paint(); draw();
-  box.append(h('div', { class: 'card-head' }, h('div', {}, h('h2', {}, 'All graphs'), h('div', { class: 'sub' }, 'Every trend in one view on the same date axis, so one can be read against another. Hollow dots are best-guess values. Hover for a value; click a title for the full trend with rules and events.'))), filters, grid);
+  box.append(h('div', { class: 'card-head' }, h('div', {}, h('h2', {}, 'All graphs'), h('div', { class: 'sub' }, 'Every trend in one view on the same date axis, so one can be read against another. Hover for a value; click a title for the full trend with rules and events.'))), filters, grid);
   return box;
 }
 
@@ -412,7 +423,8 @@ function go() {
   charts.forEach((c) => c.dispose()); charts.clear(); redraws.clear();
   const r = parseRoute(), root = document.getElementById('root');
   const content = r.page === 'd' ? domainPage(r.id, r.tab, r.key) : r.page === 'review' ? [followup()] : r.page === 'notices' ? [notices()] : r.page === 'graphs' ? [graphsPage()] : r.page === 'rules' ? [rulesPage()] : overviewPage();
-  root.replaceChildren(topbar(r), h('main', { class: 'page' }, sentence(), ...content,
+  root.replaceChildren(topbar(r), h('main', { class: 'page' }, ...content,
+    r.page === 'rules' ? null : h('a', { href: '#/rules', class: 'rules-cta' }, h('span', { class: 'rc-ic', html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3z"/><path d="M8 9h7M8 13h7"/></svg>' }), h('span', {}, h('b', {}, 'All rules'), h('small', {}, 'every rule the view applies, and which ones were used for her')), h('span', { class: 'rc-go' }, '›')),
     h('div', { class: 'footer' }, `Built from ${data.meta.inputs.final.length} files in final/ and ${data.meta.inputs.doctors_data.length} in doctors_data/ (CSV only). Glucose file md5 ${data.meta.glucose_md5.slice(0, 8)} ${data.meta.glucose_md5_ok ? '(the correct copy)' : '(NOT the expected copy)'}. No risk score, no overall colour, no diagnosis, no advice.`)));
   window.scrollTo(0, 0);
 }

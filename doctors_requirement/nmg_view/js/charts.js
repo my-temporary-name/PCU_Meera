@@ -95,10 +95,10 @@ export function trendChart(el, spec, lanes, events) {
     tooltip: { trigger: 'item', confine: true, backgroundColor: P.surface, borderColor: P.line, borderWidth: 1, padding: [8, 10], textStyle: { color: P.ink, fontSize: 12.5 }, extraCssText: `color:${P.ink};background:${P.surface};box-shadow:0 4px 14px rgba(0,0,0,.18);`,
       formatter: (q) => {
         const d = q.data || {};
-        if (d.tip) return d.tip + (d.b && d.b !== 'data' ? `<br><i style="opacity:.7">${d.b === 'best_guess' ? 'best guess' : d.b}</i>` : '');
+        if (d.tip) return d.tip;
         if (!d.d) return '';
         const v = Array.isArray(d.value) ? d.value[1] : d.value;
-        return `<b>${fmtDate(d.d)}</b><br>${q.seriesName}: <b>${Number(v).toFixed(spec.dec)}</b> ${spec.unit}${d.b && d.b !== 'data' ? `<br><i style="opacity:.75">${d.b === 'best_guess' ? 'best guess (not reviewed by a doctor)' : d.b}</i>` : ''}${d.extraNote ? `<br><span style="opacity:.75">${d.extraNote}</span>` : ''}`;
+        return `<b>${fmtDate(d.d)}</b><br>${q.seriesName}: <b>${Number(v).toFixed(spec.dec)}</b> ${spec.unit}${d.extraNote ? `<br><span style="opacity:.75">${d.extraNote}</span>` : ''}`;
       } },
     dataZoom: [{ type: 'inside', xAxisIndex: rows.length ? [0, 1] : [0], filterMode: 'none', zoomOnMouseWheel: 'shift', moveOnMouseMove: true, minValueSpan: 45 * 864e5 }],
     series,

@@ -297,11 +297,10 @@ function notices(data) {
   for (const k of ['hba1c', 'fpg', 'ldl', 'tg', 'egfr', 'alt']) (data.series[k] || []).forEach(([d]) => { if (d >= '2025-09-15') labDates.add(d); });
   const labBG = [...labDates].filter((d) => (data.series.hba1c || []).some(([x, , b]) => x === d && b !== 'data'));
   return [
-    { id: 1, title: 'HbA1c and CGM differ', text: `Lab HbA1c ${min(a1cs)} to ${max(a1cs)}% against a CGM-based estimate (GMI) of ${min(gmis)} to ${max(gmis)}% and ${data.cgm.year.tir}% time in range. Fructosamine (${frs.length ? min(frs.map((x) => x[1])) + ' to ' + max(frs.map((x) => x[1])) : 'not recorded'} µmol/L, best guess) follows the CGM. Possible glycation gap: HbA1c reads higher than glucose monitoring (document reference 22).` },
+    { id: 1, title: 'HbA1c and CGM differ', text: `Lab HbA1c ${min(a1cs)} to ${max(a1cs)}% against a CGM-based estimate (GMI) of ${min(gmis)} to ${max(gmis)}% and ${data.cgm.year.tir}% time in range. Fructosamine (${frs.length ? min(frs.map((x) => x[1])) + ' to ' + max(frs.map((x) => x[1])) : 'not recorded'} µmol/L) follows the CGM. Possible glycation gap: HbA1c reads higher than glucose monitoring (document reference 22).` },
     { id: 2, title: `${below.length} readings of 65.0 mg/dL are isolated sensor artifacts`, text: `They are not hypoglycemia and are not counted as events (${below.map((x) => x[0].slice(0, 10)).join(', ')}). The cleaned glucose series has no real reading under 70 or under 54.` },
     { id: 3, title: 'Activity data conflict', text: `Wearable steps are low (median ${data.derived.steps.median.toLocaleString('en-US')} a day) and the IPAQ is low. The persona's own step range (3,000 to 9,000) is not mixed in.` },
-    { id: 4, title: 'Only a few lab dates exist in the data year', text: `${labDates.size} lab dates from 15 Sep 2025 to 17 Sep 2026${labBG.length ? `, ${labBG.length} of them best guess (${labBG.join(', ')})` : ''}. Always read each value with its date.` },
-    { id: 5, title: 'Best-guess values carry a badge', text: 'UACR, apoB, Lp(a), fasting insulin and HOMA-IR, fructosamine, the interim 2026-06-17 panel, the ultrasound, the treatment goals, the family-history details and all history before September 2025 were invented for this demonstration and have not been reviewed by a doctor.' },
+    { id: 4, title: 'Only a few lab dates exist in the data year', text: `${labDates.size} lab dates from 15 Sep 2025 to 17 Sep 2026. Always read each value with its date.` },
   ];
 }
 
