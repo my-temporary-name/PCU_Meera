@@ -5,7 +5,7 @@ import { fmtDate, ms, MON } from './ui.js';
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 export const palette = () => ({
   ink: css('--ink'), ink2: css('--ink-2'), muted: css('--muted'), line: css('--line'), surface: css('--surface'), surface2: css('--surface-2'),
-  primary: css('--primary'), primaryInk: css('--primary-ink'), ep: css('--ep'), warn: css('--warn'), bad: css('--bad'), low: css('--low'), ok: css('--ok'), c4: css('--c4'), c5: css('--c5'), font: css('--font'),
+  primary: css('--primary'), primaryInk: css('--primary-ink'), ep: css('--ep'), warn: css('--warn'), bad: css('--bad'), low: css('--low'), ok: css('--ok'), c4: css('--c4'), c5: css('--c5'), zg: css('--zg'), za: css('--za'), zr: css('--zr'), font: css('--font'),
 });
 
 const LEFT0 = 132, RIGHT0 = 150, TOP0 = 30, BOTTOM0 = 46, ROW = 20, LEFT_LANES = 132;
@@ -47,9 +47,9 @@ export function trendChart(el, spec, lanes, events) {
   if (spec.dx && spec.dx >= spec.xmin && spec.dx <= spec.xmax) markLines.push({ xAxis: spec.dx, lineStyle: { color: P.ink, type: 'solid', width: 1.3, opacity: 0.7 }, label: { show: !cp, formatter: 'Type 2 diabetes diagnosed', position: 'insideStartTop', rotate: 90, color: P.ink, fontSize: 11, fontWeight: 600, distance: 4 } });
   if (spec.baseline) markLines.push([{ coord: [spec.baseline.from, spec.baseline.value], lineStyle: { color: P.primaryInk, type: 'solid', width: 2, opacity: 0.9 }, label: { show: false } }, { coord: [spec.baseline.to, spec.baseline.value] }]);
   const markAreas = [];
-  const ZC = { green: 'rgba(56,160,108,.13)', amber: 'rgba(224,160,42,.17)', red: 'rgba(217,59,43,.13)' };
+  const ZC = { green: `rgba(${P.zg},.13)`, amber: `rgba(${P.za},.17)`, red: `rgba(${P.zr},.13)` };
   (spec.zones || []).forEach((z) => markAreas.push([{ yAxis: z.from == null ? ymin : z.from, itemStyle: { color: ZC[z.signal] }, label: { show: false } }, { yAxis: z.to == null ? ymax : z.to }]));
-  if (spec.band) markAreas.push([{ yAxis: spec.band.lo, itemStyle: { color: 'rgba(56,160,108,.10)' }, label: { show: !cp, formatter: spec.band.label, position: 'insideBottomLeft', color: P.ink2, fontSize: 11 } }, { yAxis: spec.band.hi }]);
+  if (spec.band) markAreas.push([{ yAxis: spec.band.lo, itemStyle: { color: `rgba(${P.zg},.10)` }, label: { show: !cp, formatter: spec.band.label, position: 'insideBottomLeft', color: P.ink2, fontSize: 11 } }, { yAxis: spec.band.hi }]);
   (spec.windows || []).forEach((w) => markAreas.push([{ xAxis: w.from, itemStyle: { color: w.color || 'rgba(155,133,144,.16)' }, label: { show: !cp && !!w.label, formatter: w.label, position: 'insideTop', color: P.primaryInk, fontSize: 11, fontWeight: 600 } }, { xAxis: w.to }]));
 
   const line = (l, i) => ({

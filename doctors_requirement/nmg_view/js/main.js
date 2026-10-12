@@ -1,8 +1,12 @@
 // The doctor's view. Inputs (data/nmg.json, built from CSV files only) -> fixed rules (rules.js) -> display. No model, no pipeline.
-import { h, fmtDate, ms, num, ago, pv, spark, CHEV } from './ui.js';
+import { h, fmtDate, ms, num, ago, pv, spark, CHEV, MON } from './ui.js';
 import { evaluate, RULES, SENTENCE, goalOf, addMonths, daysBetween, iso } from './rules.js';
 import { trendChart, palette } from './charts.js';
+import { predictions, recommendations, PRED_DOMAIN } from './outlook.js';
+import { initScribe } from './scribe.js';
+import { scheduleBar, schedulePage } from './schedule.js';
 
+const tokRgb = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const data = await (await fetch('data/nmg.json')).json();
 const R = evaluate(data);
 const AS_OF = data.meta.as_of;
@@ -14,7 +18,7 @@ const open = new Set(), sel = {}, lanesOn = { meds: true, visits: true, dx: true
 // ---- small builders ------------------------------------------------------------------------------------------------------------------------------------------
 const fv = (k, x) => { const v = data.vars[k]; const d = v ? v.dec : 1; return (x == null ? '—' : Number(x).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })); };
 const sigPill = (s) => h('span', { class: `sig ${s}` }, h('i'), SIGWORD[s] || s);
-const rid = (id) => { const r = RULES[id]; return h('span', { class: `rid ${r ? r[2] : ''}`, title: r ? `${id} · ${KIND[r[2]]}\n${r[3]}` : id }, id); };
+const rid = (id) => { const r = RULES[id]; return h('span', { class: `rid ${r ? r[2] : ''}`, tabindex: '0', title: r ? `${id} · ${KIND[r[2]]}\n${r[3]}` : id }, id); };
 const dirChip = (dir, change, dec = 1, unit = '') => {
   const ch = dir && dir.change != null ? dir.change : change;
   if (!dir || !dir.dir) return h('span', { class: 'muted' }, `change ${ch > 0 ? '+' : ''}${Number(ch).toFixed(dec)}${unit ? ' ' + unit : ''} (no tolerance defined)`);
@@ -56,7 +60,7 @@ function tilesFor(id) {
         h('div', { class: 'cmp' }, 'Whole year: mean ', h('b', {}, c.year.mean), ' · GMI ', h('b', {}, c.year.gmi), ' · time in range ', h('b', {}, c.year.tir + '%')),
         data.vars.cgm_mean?.baseline ? h('div', { class: 'cmp' }, 'Last 28 days ', h('b', {}, fv('cgm_mean', data.vars.cgm_mean.last28.median)), ' vs baseline ', h('b', {}, fv('cgm_mean', data.vars.cgm_mean.baseline.v)), ' · ', dirChip(null, data.vars.cgm_mean.direction.change, 1)) : null,
         gap ? h('div', { class: 'cmp', title: 'HbA1c minus the glucose-monitoring estimate (GMI) over the 90 days before the lab date.' }, 'Lab HbA1c ', h('b', {}, gap.hba1c), ' vs GMI ', h('b', {}, gap.gmi), ' · gap ', h('b', {}, (gap.gap > 0 ? '+' : '') + gap.gap)) : null]),
-      factTile('2-hour glucose after meals', '', 'from CGM, not OGTT (G6)', ['breakfast', 'lunch', 'dinner'].filter((k) => c.post_meal_2h[k]).map((k) => h('div', { class: 'cmp' }, `${k[0].toUpperCase() + k.slice(1)} median `, h('b', {}, c.post_meal_2h[k].median), ` · 90th percentile ${c.post_meal_2h[k].p90} · ${c.post_meal_2h[k].n} meals`)).concat([h('div', { class: 'cmp muted' }, `Last dinner ${c.post_meal_2h.dinner.last.v} mg/dL`)])),
+      factTile('2-hour glucose after meals', '', 'from CGM, not OGTT', ['breakfast', 'lunch', 'dinner'].filter((k) => c.post_meal_2h[k]).map((k) => h('div', { class: 'cmp' }, `${k[0].toUpperCase() + k.slice(1)} median `, h('b', {}, c.post_meal_2h[k].median), ` · 90th percentile ${c.post_meal_2h[k].p90} · ${c.post_meal_2h[k].n} meals`)).concat([h('div', { class: 'cmp muted' }, `Last dinner ${c.post_meal_2h.dinner.last.v} mg/dL`)])),
       varTile('fructosamine'),
     ];
   }
@@ -72,7 +76,7 @@ function tilesFor(id) {
   if (id === 'lipids') {
     const rx = R.domains.find((d) => d.id === 'lipids').treatment;
     return [varTile('ldl', { goal: gLdl ? gLdl.value : null }), varTile('tg', { goal: 150 }), varTile('hdl', { goal: 50 }), varTile('tg_hdl', { goal: 2 }), varTile('nonhdl'), varTile('tc'), varTile('apob'),
-      factTile('Lp(a)', [num(data.vars.lpa.latest.v), ' ', h('small', {}, 'nmol/L')], `${fmtDate(data.vars.lpa.latest.d)} · measured once in adulthood (L5)`, [h('div', { class: 'cmp muted' }, 'Risk-enhancing at 125 nmol/L or more; not serially monitored.')], data.vars.lpa.latest.b),
+      factTile('Lp(a)', [num(data.vars.lpa.latest.v), ' ', h('small', {}, 'nmol/L')], `${fmtDate(data.vars.lpa.latest.d)} · measured once in adulthood`, [h('div', { class: 'cmp muted' }, 'Risk-enhancing at 125 nmol/L or more; not serially monitored.')], data.vars.lpa.latest.b),
       factTile('Lipid-lowering treatment', rx.replace('No lipid-lowering therapy', 'None'), gLdl ? `LDL-C goal under ${gLdl.value} mg/dL ` : '', [])];
   }
   if (id === 'kidney') return [varTile('egfr'), varTile('creat'), varTile('uacr')];
@@ -97,7 +101,7 @@ function tilesFor(id) {
     factTile('Tobacco, alcohol, caffeine', tob ? tob.value : 'not recorded', '', [alc ? h('div', { class: 'cmp' }, 'Alcohol: ', alc.value, ` (${dv.alcohol_dates.length} diary entries in the data year)`) : null, caf ? h('div', { class: 'cmp' }, 'Caffeine: ', caf.value) : null], tob ? tob.b : null),
     factTile('Family history', 'First degree', '', fam.filter((f) => f.premature !== 'not documented').map((f) => h('div', { class: 'cmp' }, h('b', {}, f.relative), ': ', f.condition, f.onset ? `, age ${f.onset}` : '', f.premature && !/not applicable/i.test(f.premature) ? ` (premature: ${f.premature.split(' (')[0]})` : '', ' ', pv(f.b))).concat([h('div', { class: 'cmp muted' }, 'PCOS, gestational diabetes and inherited conditions: not documented.')])),
     factTile('Occupation and diet', occ ? occ.value.split(',')[0] : '', occ ? occ.detail : '', [diet ? h('div', { class: 'cmp' }, h('b', {}, 'Diet: '), diet.value, ' · ', diet.detail) : null, hh ? h('div', { class: 'cmp muted' }, hh.value, '. ', hh.detail) : null], occ ? occ.b : null),
-    factTile('PCOS and gestational history', 'None documented', 'not documented', [h('div', { class: 'cmp muted' }, 'X4: PCOS needs at least two of hyperandrogenism, ovulatory dysfunction and polycystic ovarian morphology after excluding other causes.')], 'best_guess'),
+    factTile('PCOS and gestational history', 'None documented', 'not documented', [], 'best_guess'),
   ];
 }
 
@@ -159,10 +163,10 @@ function specFor(tab) {
   if (v.kind === 'daily') {
     const end = ms(lastD(tab)), d0 = ms(data.series[tab][0][0]);
     spec.xmin = d0 - 3 * 864e5; spec.xmax = end + 2 * 864e5; spec.dx = null;
-    if (v.baseline) { spec.windows.push({ from: end - 117 * 864e5, to: end - 28 * 864e5, label: 'baseline (90 days)', color: 'rgba(155,133,144,.16)' }, { from: end - 27 * 864e5, to: end, label: '', color: 'rgba(162,48,95,.14)' }); spec.baseline = { from: end - 117 * 864e5, to: end - 28 * 864e5, value: v.baseline.v }; }
+    if (v.baseline) { spec.windows.push({ from: end - 117 * 864e5, to: end - 28 * 864e5, label: 'baseline (90 days)', color: `rgba(${tokRgb('--win-rgb')},.16)` }, { from: end - 27 * 864e5, to: end, label: '', color: 'rgba(162,48,95,.14)' }); spec.baseline = { from: end - 117 * 864e5, to: end - 28 * 864e5, value: v.baseline.v }; }
     if (tab === 'cgm_mean') spec.band = { lo: 70, hi: 180, label: 'time-in-range band 70 to 180' };
   } else {
-    if (v.baseline) { const from = ms(addMonths(lastD(tab), -24)), to = ms(lastD(tab)); spec.windows.push({ from, to, label: 'baseline window (previous 24 months)', color: 'rgba(155,133,144,.16)' }); spec.baseline = { from, to, value: v.baseline.v }; }
+    if (v.baseline) { const from = ms(addMonths(lastD(tab), -24)), to = ms(lastD(tab)); spec.windows.push({ from, to, label: 'baseline window (previous 24 months)', color: `rgba(${tokRgb('--win-rgb')},.16)` }); spec.baseline = { from, to, value: v.baseline.v }; }
   }
   if (tab === 'hba1c') {
     spec.extra = [{ name: 'Estimated HbA1c from CGM (GMI, 90 days before)', color: P.ep, dashed: true, note: 'GMI = 3.31 + 0.02392 × mean glucose over the 90 days before the lab date', pts: data.gmi_gap.map((x) => [x.d, x.gmi, x.b === 'data' ? 'data' : x.b]) }];
@@ -186,6 +190,11 @@ const EMBED = new URLSearchParams(location.search).get('embed') === '1';
 const DOMTABS = [['values', 'Status and trends'], ['episodes', 'Events and episodes']];
 const labVar = (dom, k) => (k === 'bp' ? 'bp_clinic_sys' : k === 'liver' ? 'alt' : k);
 
+// a plain-words summary of a chart for assistive technology (the chart itself is a canvas)
+function chartSummary(spec) {
+  const ln = spec.lines.filter((l) => l.pts && l.pts.length).map((l) => { const q = l.pts[l.pts.length - 1]; return `${l.name}: latest ${Number(q[1]).toLocaleString('en-US', { maximumFractionDigits: spec.dec == null ? 1 : spec.dec })} ${spec.unit || ''} on ${fmtDate(q[0])}, ${l.pts.length} readings from ${fmtDate(l.pts[0][0])}`; });
+  return `${spec.title || 'Trend'}, a line chart over time. ${ln.join('; ')}.`;
+}
 function trendPanel(dom, opts = {}) {
   const tabs = TABS[dom.id];
   if (!tabs.some(([k]) => k === sel[dom.id])) sel[dom.id] = tabs[0][0];
@@ -198,6 +207,7 @@ function trendPanel(dom, opts = {}) {
     const spec = specFor(k); spec.draw = true;
     const hMax = lanesOn.meds ? 470 : 420;
     chartEl.style.height = (opts.chips === false ? Math.max(380, Math.min(hMax, innerHeight - 56 - 350)) : hMax) + 'px';
+    chartEl.setAttribute('role', 'img'); chartEl.setAttribute('aria-label', chartSummary(spec));
     charts.set(dom.id, trendChart(chartEl, spec, lanesData(), data.events));
     legend.replaceChildren(...[
       h('span', {}, h('i', {}), 'value (solid line)'), h('span', {}, h('i', { class: 'dot fill' }), 'recorded value'),
@@ -260,7 +270,7 @@ function episodesPanel(dom) {
 }
 
 // ---- header and route -----------------------------------------------------------------------------------------------------------------------------------
-const NAVL = [['', 'Overview'], ['review', 'Suggested review'], ['notices', 'Read with the values'], ['graphs', 'All graphs']];
+const NAVL = [['schedule', "Today's schedule"], ['', 'Overview'], ['graphs', 'All graphs']];
 // motion tokens live in the CSS (one rhythm); the JS reads them from there
 const tok = (name, d) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || d;
 const CALM = matchMedia('(prefers-reduced-motion: reduce)');
@@ -312,7 +322,9 @@ function topbar(route) {
 }
 // the page tabs: a vertical rail on the left (a row on narrow screens)
 function sideNav(route) {
-  return h('aside', { class: 'dv-side', 'aria-label': 'Pages' }, indicate(h('nav', { class: 'tnav vert' }, NAVL.map(([k, t2]) => h('a', { href: `#/${k}`, class: (route.page === k || (k === '' && route.page === 'd')) ? 'on' : '' }, t2))), 'nav', true));
+  return h('aside', { class: 'dv-side', 'aria-label': 'Pages and visit brief' },
+    indicate(h('nav', { class: 'tnav vert', 'aria-label': 'Pages' }, NAVL.map(([k, t2]) => h('a', { href: `#/${k}`, 'aria-current': (route.page === k || (k === '' && ['d', 'p', 'r'].includes(route.page))) ? 'page' : null, class: (route.page === k || (k === '' && ['d', 'p', 'r'].includes(route.page))) ? 'on' : '' }, t2))), 'nav', true),
+    h('section', { class: 'dv-brief', 'aria-label': 'Visit brief' }, h('div', { class: 'dv-brief-h' }, 'Visit brief'), briefs()));
 }
 
 // the fixed sentence is on every page; the provenance notes sit behind "About this view"
@@ -360,7 +372,9 @@ function keyFacts(id) {
 }
 
 // The first REST_ROWS rows of each box show at rest; the other rows (the same DOM nodes, moved, never copied) live in a details blob that splits off below the box on hover.
-const REST_ROWS = 1;
+const REST_ROWS = 1;      // rows kept in the box when the boxes sit below the content (narrow screens)
+const RAIL_REST_ROWS = 0; // rows kept in the box in the left rail, where it is only a title and a date line
+const WIDE = () => matchMedia('(min-width: 901px)').matches;
 // goo filter for the amoeba split, applied to the shapes layer only and only while it moves
 if (!document.getElementById('dv-goo-defs')) {
   const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg'); svg.id = 'dv-goo-defs'; svg.setAttribute('width', '0'); svg.setAttribute('height', '0'); svg.setAttribute('aria-hidden', 'true'); svg.style.cssText = 'position:absolute;width:0;height:0';
@@ -376,7 +390,7 @@ function closeBox(box) {
   const st = box._st; if (!st || !st.open) return;
   clearTimeout(st.tEnd); clearTimeout(st.tContent); clearTimeout(st.tMerge); clearTimeout(st.tSettle); clearTimeout(st.tShrink);
   st.open = false; st.pinned = false;
-  box.classList.remove('content-on'); box.setAttribute('aria-expanded', 'false');
+  box.classList.remove('content-on'); box.setAttribute('aria-expanded', 'false'); box.querySelector('.bc').tabIndex = -1;
   if (BOX.open === box) BOX.open = null;
   if (SIMPLE()) { box.classList.remove(...BOX_CLASSES); return; }
   // reverse of the open: the one big box splits, the lower part shrinks back into the box and merges (about 650 ms)
@@ -384,18 +398,26 @@ function closeBox(box) {
   st.tShrink = setTimeout(() => { if (!st.open) box.classList.remove('is-open'); }, 240);
   st.tEnd = setTimeout(() => { if (!st.open) box.classList.remove('blob-on', 'morphing'); }, 240 + 520);
 }
+function sizeBox(box) {
+  const bc = box.querySelector('.bc'), rail = box.parentElement.classList.contains('rail'), bw = 360, boxh = box.offsetHeight;
+  box.style.setProperty('--boxh', boxh + 'px'); box.style.setProperty('--boxw', box.offsetWidth + 'px'); box.style.setProperty('--bw', bw + 'px');
+  // the details open to the right in the rail (height capped to the room below the box's top, scrolling inside); below the box on narrow screens
+  const room = rail ? Math.max(220, innerHeight - box.getBoundingClientRect().top - 18) : innerHeight * 0.6;
+  const bh = Math.min(bc.scrollHeight, rail ? room : innerHeight * 0.6);
+  box.style.setProperty('--bh', bh + 'px'); box.style.setProperty('--mh', Math.max(boxh, bh) + 'px');
+}
 function openBox(box) {
   const st = box._st; if (!st || st.open) return;
   if (BOX.open && BOX.open !== box) closeBox(BOX.open);
   clearTimeout(st.tEnd); clearTimeout(st.tContent); clearTimeout(st.tMerge); clearTimeout(st.tSettle); clearTimeout(st.tShrink);
   st.open = true; BOX.open = box;
   const bc = box.querySelector('.bc');
-  box.style.setProperty('--boxh', box.offsetHeight + 'px'); box.style.setProperty('--bh', Math.min(bc.scrollHeight, innerHeight * 0.6) + 'px');
+  sizeBox(box);
   box.setAttribute('aria-expanded', 'true'); box.classList.add('blob-on');
-  if (SIMPLE()) { box.classList.add('is-open', 'is-merged', 'settled', 'content-on'); return; }
+  if (SIMPLE()) { box.classList.add('is-open', 'is-merged', 'settled', 'content-on'); box.querySelector('.bc').tabIndex = 0; return; }
   // 1) a droplet buds downward and pinches off, 2) it expands into a second box, 3) after a short hold the two join back into ONE big box, then the goo filter is removed
   box.classList.add('morphing'); void box.offsetWidth; box.classList.add('is-open');
-  st.tContent = setTimeout(() => { if (st.open) box.classList.add('content-on'); }, 560);
+  st.tContent = setTimeout(() => { if (st.open) { box.classList.add('content-on'); box.querySelector('.bc').tabIndex = 0; } }, 560);
   st.tMerge = setTimeout(() => { if (st.open) box.classList.add('is-merged'); }, 1050);
   st.tSettle = setTimeout(() => { if (st.open) { box.classList.add('settled'); box.classList.remove('morphing'); } }, 1050 + 450 + 100);
 }
@@ -408,17 +430,18 @@ function ripple(box, e) {
     r.animate([{ transform: 'scale(0)', opacity: 0.9 }, { transform: 'scale(1)', opacity: 0 }], { duration: 1100, delay: i * 170, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'both' }).onfinish = () => r.remove();
   });
 }
-function enhanceBoxes(wrap) {
+function enhanceBoxes(wrap, restRows) {
   const HOVER = matchMedia('(hover: hover) and (pointer: fine)');
   [...wrap.children].forEach((box, i) => {
-    const bh = box.querySelector('.bh'), ul = box.querySelector('ul'), rows = [...ul.children], more = rows.slice(REST_ROWS), title = bh.querySelector('span');
+    const bh = box.querySelector('.bh'), ul = box.querySelector('ul'), rows = [...ul.children], more = rows.slice(restRows), title = bh.querySelector('span');
     title.id = `box-t${i}`;
     const moreUl = h('ul', {}); more.forEach((li) => moreUl.append(li)); // the same nodes, moved
     const shapes = h('div', { class: 'shapes', 'aria-hidden': 'true' }, h('div', { class: 'sh-box' }), h('div', { class: 'sh-blob' }));
     const rp = h('div', { class: 'rp', 'aria-hidden': 'true' });
     const chev = h('span', { class: 'chev', 'aria-hidden': 'true', html: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>' });
+    if (!ul.children.length) ul.hidden = true;
     const bx = h('div', { class: 'bx' }, bh, ul);
-    const bc = h('div', { class: 'bc', id: `box-d${i}`, role: 'region', 'aria-labelledby': title.id }, moreUl);
+    const bc = h('div', { class: 'bc', id: `box-d${i}`, role: 'region', tabindex: '-1', 'aria-labelledby': title.id }, moreUl);
     box.replaceChildren(shapes, h('div', { class: 'hair', 'aria-hidden': 'true' }), rp, bx, chev, bc, h('div', { class: 'bridge', 'aria-hidden': 'true' }));
     box.tabIndex = 0; box.setAttribute('role', 'group'); box.setAttribute('aria-expanded', 'false'); box.setAttribute('aria-controls', bc.id); box.setAttribute('aria-labelledby', title.id);
     const st = box._st = { open: false, pinned: false, tIn: 0, tOut: 0, tEnd: 0, tContent: 0, tMerge: 0, tSettle: 0, tShrink: 0 };
@@ -436,7 +459,7 @@ function enhanceBoxes(wrap) {
 }
 document.addEventListener('pointerdown', (e) => { if (BOX.open && !BOX.open.contains(e.target)) closeBox(BOX.open); }, true);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && BOX.open) closeBox(BOX.open); });
-window.addEventListener('resize', () => { if (BOX.open) { const b = BOX.open; b.style.setProperty('--boxh', b.offsetHeight + 'px'); b.style.setProperty('--bh', Math.min(b.querySelector('.bc').scrollHeight, innerHeight * 0.6) + 'px'); } });
+window.addEventListener('resize', () => { if (BOX.open) sizeBox(BOX.open); });
 
 // four short cards under the banner: who she is, what happened at the last visit, what her PCU shows since, and what she brings today
 function briefs() {
@@ -446,7 +469,8 @@ function briefs() {
   const brief = (cls, title, sub, ...pts) => h('section', { class: `brief ${cls}` },
     h('div', { class: 'bh' }, h('span', {}, title), sub ? h('small', {}, sub) : null), h('ul', {}, pts));
   const li = (k, t) => h('li', {}, k ? h('b', {}, k.replace(/:$/, '')) : null, t); // a label sits on its own line above its value, so the colon is dropped
-  return enhanceBoxes(h('div', { class: 'briefs' },
+  const wide = WIDE();
+  return enhanceBoxes(h('div', { class: `briefs${wide ? ' rail' : ''}` },
     brief('b-prof', 'Profile', null,
       li('Alongside diabetes:', 'hypertension on amlodipine, subclinical hypothyroidism on levothyroxine'),
       li('Also', 'dyslipidemia, obesity and grade 1 hepatic steatosis'),
@@ -469,7 +493,106 @@ function briefs() {
       li(null, 'Tired and foggy after a hard month'),
       li(null, 'Knows her walks and medicine timing slipped'),
       li(null, 'Knows HbA1c is back up'),
-      li(null, 'Wants to reset once the quarter-close and festival pressure ease'))));
+      li(null, 'Wants to reset once the quarter-close and festival pressure ease'))), wide ? RAIL_REST_ROWS : REST_ROWS);
+}
+
+// ---- Predictions and Interventions / recommendations (decision support for the clinician; logic in outlook.js) --------------------------------------------
+const CTX = { data, R, asOf: AS_OF, refsFor, zonesFor }, PREDS = predictions(CTX), RECS = recommendations(CTX, PREDS);
+const PRED_TONE = { bad: 'Heading the wrong way', good: 'Heading the right way', okay: 'Steady, in range', watch: 'Not improving', steady: 'Holding steady' };
+const monYr = (d) => `${MON[+d.slice(5, 7) - 1]} ${d.slice(0, 4)}`;
+const REC_STATE = { negative: ['red', 'Needs action'], watch: ['amber', 'Keep an eye'], positive: ['green', 'On track'] };
+const domName = (id) => (R.domains.find((d) => d.id === id) || { name: id }).name;
+
+function predCard(p) {
+  const tone = p.ok ? p.tone : 'none', f = (x) => `${fv(p.key, x)} ${p.unit}`.trim();
+  const tip = p.ok ? `${p.label}: ${f(p.now.v)} now. ${p.lines.join(' ')} ${p.why}\nClick for the graph and the reasons.` : `${p.label}: ${p.reason}`;
+  const row = (l, v) => h('div', {}, h('span', { class: 'fl' }, l), h('span', { class: 'fv num' }, v));
+  return h('a', { class: `dcard pcard ${tone}`, href: `#/p/${p.key}`, title: tip },
+    h('div', { class: 'dc-top' }, h('span', { class: 'dc-name' }, p.label)),
+    p.ok ? h('div', { class: 'dc-facts' }, row(p.nowLabel || 'Now', f(p.now.v)), row(`By ${monYr(p.endDate)}`, f(p.end.c)), row('80 % range', `${p.range}`))
+      : h('div', { class: 'dc-facts' }, h('div', {}, h('span', { class: 'fl' }, p.reason))),
+    p.ok ? h('div', { class: 'pc-say' }, PRED_TONE[p.verdict]) : null,
+    h('span', { class: 'dc-go' }, 'Open ', h('span', { class: 'chev-r' }, '›')));
+}
+function recCard(r) {
+  const [tone, word] = REC_STATE[r.state];
+  return h('a', { class: `dcard rcard ${tone}`, href: `#/r/${r.id}`, title: `${r.title}\n${r.facts[0] || ''}\nClick for what could be done and where it comes from.` },
+    h('div', { class: 'dc-top' }, h('span', { class: 'dc-name' }, r.title)),
+    h('div', { class: 'rc-chips' }, h('span', { class: 'rc-verb' }, r.verb), h('span', { class: 'rc-state' }, word), h('span', { class: 'rc-dom' }, domName(r.domain))),
+    h('p', { class: 'rc-sum' }, r.facts[0] || ''),
+    h('span', { class: 'dc-go' }, 'Open ', h('span', { class: 'chev-r' }, '›')));
+}
+function outlookSections() {
+  const intro = (title, sub) => h('div', { class: 'dom-intro' }, h('h2', {}, title), h('p', { class: 'sec-sub' }, sub));
+  return h('div', { class: 'outlook' },
+    h('section', { class: 'domains', id: 'predictions' }, intro('Predictions', 'If things carry on as they are now, what could happen and when.'), h('div', { class: 'dgrid8' }, PREDS.map(predCard))),
+    h('section', { class: 'domains', id: 'recommendations' }, intro('Interventions and recommendations', 'What could be done to stop, reduce, improve or continue each situation.'), h('div', { class: 'dgrid8' }, RECS.map(recCard))));
+}
+
+// the projection graph: her readings, the projection with its 80 % range, and two what-if lines
+function outlookChart(el, p) {
+  const E = window.echarts, P = palette(), c = E.init(el, null, { renderer: 'canvas' }), T = (d) => ms(d), fmt = (x) => fv(p.key, x);
+  const hist = p.hist.map((q) => [T(q[0]), q[1]]), proj = (k) => p.proj.map((q) => [T(q.d), q[k]]);
+  const ys = [...p.hist.map((q) => q[1]), ...p.proj.flatMap((q) => [q.lo, q.hi, q.imp, q.slp])], lo0 = Math.min(...ys), hi0 = Math.max(...ys), pad = (hi0 - lo0) * 0.12 || 1;
+  const yMin = lo0 - pad, yMax = hi0 + pad, near = (y) => y >= yMin - (hi0 - lo0) * 0.5 && y <= yMax + (hi0 - lo0) * 0.5;
+  const ZC = { green: `rgba(${P.zg},.13)`, amber: `rgba(${P.za},.17)`, red: `rgba(${P.zr},.13)` };
+  const zones = (p.zones || []).map((z) => [{ yAxis: z.from == null ? yMin : Math.max(z.from, yMin), itemStyle: { color: ZC[z.signal] } }, { yAxis: z.to == null ? yMax : Math.min(z.to, yMax) }]).filter((z) => z[0].yAxis < z[1].yAxis);
+  const refs = (p.refs || []).filter((r) => near(r.y)).map((r) => ({ yAxis: r.y, lineStyle: { color: r.tone === 'goal' ? P.primaryInk : P.ink2, type: 'dashed', width: 1.2, opacity: 0.8 }, label: { formatter: r.label, position: 'insideStartTop', color: r.tone === 'goal' ? P.primaryInk : P.ink2, fontSize: 11, fontWeight: 600 } }));
+  const line = (name, data, color, extra = {}) => ({ name, type: 'line', data, smooth: 0.5, showSymbol: false, silent: false, ...(extra.end ? { endLabel: { show: true, formatter: extra.end, color, fontSize: 11, fontWeight: 600 } } : {}), lineStyle: { color, width: 2, ...(extra.ls || {}) }, itemStyle: { color }, z: 3, ...extra.s });
+  const series = [
+    { ...line('Recorded', hist, P.primary, { s: { showSymbol: true, symbol: 'circle', symbolSize: 7, smooth: false } }), markArea: { silent: true, data: zones }, markLine: { silent: true, symbol: 'none', animation: false, data: [...refs, { xAxis: T(p.now.d), lineStyle: { color: P.muted, type: 'solid', width: 1, opacity: 0.6 }, label: { formatter: 'latest reading', position: 'insideEndTop', color: P.ink2, fontSize: 11 } }] } },
+    { name: '', type: 'line', data: proj('lo'), stack: 'band', smooth: 0.5, symbol: 'none', lineStyle: { opacity: 0 }, silent: true, tooltip: { show: false }, z: 1 },
+    { name: '', type: 'line', data: p.proj.map((q) => [T(q.d), q.hi - q.lo]), stack: 'band', smooth: 0.5, symbol: 'none', lineStyle: { opacity: 0 }, areaStyle: { color: P.primary, opacity: 0.14 }, silent: true, tooltip: { show: false }, z: 1 },
+    line('Continues as now', proj('c'), P.primary, { ls: { type: 'dashed', width: 2.4 }, end: 'continues' }),
+    line('Returns to her best', proj('imp'), P.ep, { ls: { type: 'dotted', width: 2.4 }, end: 'her best' }),
+    line('Keeps slipping', proj('slp'), P.ink2, { ls: { type: 'dotted', width: 2.4 }, end: 'slipping' }),
+  ];
+  c.setOption({
+    useUTC: true, animation: true, animationDuration: 1000, animationEasing: 'cubicOut', textStyle: { fontFamily: P.font, color: P.ink2 },
+    grid: { left: 62, right: 130, top: 26, bottom: 44 },
+    xAxis: { type: 'time', min: T(p.hist[0][0]), max: T(p.endDate) + 6 * 864e5, axisLine: { lineStyle: { color: P.line } }, axisLabel: { color: P.ink2, fontSize: 12 }, splitLine: { show: false },
+      axisPointer: { label: { show: true, backgroundColor: P.ink, color: P.surface, borderColor: P.ink, formatter: (q) => fmtDate(new Date(q.value).toISOString().slice(0, 10)) } } },
+    yAxis: { type: 'value', min: yMin, max: yMax, name: p.unit, nameTextStyle: { color: P.muted, fontSize: 12, align: 'right' }, axisLabel: { color: P.ink2, fontSize: 12, formatter: (v) => fmt(v) }, splitLine: { lineStyle: { color: P.line, opacity: 0.6 } } },
+    tooltip: { trigger: 'axis', backgroundColor: P.surface, borderColor: P.line, textStyle: { color: P.ink, fontSize: 12.5 }, extraCssText: 'box-shadow:0 6px 20px rgba(0,0,0,.18);border-radius:10px;',
+      formatter: (ps) => { const rows = ps.filter((q) => q.seriesName && q.value && q.value[1] != null); if (!rows.length) return ''; return `<b>${fmtDate(new Date(rows[0].value[0]).toISOString().slice(0, 10))}</b>` + rows.map((q) => `<div>${q.marker} ${q.seriesName}: <b>${fmt(q.value[1])}</b> ${p.unit}</div>`).join(''); } },
+    series,
+  });
+  return c;
+}
+
+function predPopup(key) {
+  const p = PREDS.find((x) => x.key === key); if (!p) return [h('p', {}, 'Unknown prediction.')];
+  lastFit = true;
+  const f = (x) => `${fv(p.key, x)} ${p.unit}`.trim(), dom = R.domains.find((d) => d.id === p.domain), rel = RECS.filter((r) => r.domain === p.domain);
+  const head = h('section', { class: 'dhead' }, h('div', { class: 'dh-main' }, p.ok ? h('span', { class: `sig ${p.tone}` }, h('i'), PRED_TONE[p.verdict]) : h('span', { class: 'sig none' }, h('i'), 'Not enough readings'), h('h2', { id: 'modal-title' }, p.label), h('span', { class: 'dom-line' }, p.ok ? p.short : p.reason)),
+    h('div', { class: 'dom-rules' }, h('span', { class: 'muted', style: { fontSize: '12px' } }, dom ? dom.name : '')));
+  const blk = (t, ...kids) => h('div', { class: 'tile otext' }, h('div', { class: 'tk' }, h('span', {}, t)), ...kids);
+  const tiles = h('div', { class: 'tiles' });
+  if (p.ok) {
+    tiles.append(
+      blk('What could happen', h('ul', { class: 'o-list' }, p.lines.map((l) => h('li', {}, l)))),
+      blk('Three ways it could go', h('div', { class: 'o-scen' }, p.scen.map((q) => h('div', { class: 'o-sc' }, h('div', { class: 'o-sn' }, q.name), h('div', { class: 'o-sv num' }, f(q.end), q.band ? h('span', { class: `dot ${q.band}`, title: `${SIGWORD[q.band]} band` }) : null), h('div', { class: 'o-sd' }, q.text))))),
+      blk('Why this is good or bad', h('p', { class: 'o-p' }, p.why)),
+      blk('How this was made', h('p', { class: 'o-p muted' }, p.basis)),
+      rel.length ? blk('What could be done', h('ul', { class: 'o-list' }, rel.slice(0, 3).map((r) => h('li', {}, h('a', { href: `#/r/${r.id}` }, r.title))))) : null);
+  } else tiles.append(blk('Why there is no projection', h('p', { class: 'o-p' }, p.reason), h('p', { class: 'o-p muted' }, 'A projection needs at least four readings spread over four months, or six weeks of daily data.')));
+  const chartEl = h('div', { class: 'chartbox' }), legend = h('div', { class: 'legend' });
+  chartEl.style.height = Math.max(380, Math.min(470, innerHeight - 56 - 350)) + 'px';
+  legend.append(h('span', {}, h('i', { class: 'dot fill' }), 'recorded'), h('span', {}, h('i', { class: 'dash' }), 'continues as now'), h('span', {}, h('i', { class: 'band' }), '80 % range'), h('span', {}, h('i', { class: 'dotted' }), 'returns to her best / keeps slipping'), p.zones && p.zones.length ? h('span', {}, h('i', { class: 'zone' }), 'Green, Amber, Red bands') : null);
+  chartEl.setAttribute('role', 'img'); chartEl.setAttribute('aria-label', p.ok ? `${p.label} projection chart. Now ${f(p.now.v)}; ${p.short}; 80 % range ${p.range} ${p.unit}.` : `${p.label}: no projection, ${p.reason}`);
+  requestAnimationFrame(() => { if (p.ok) charts.set('pred', outlookChart(chartEl, p)); });
+  return [head, h('div', { class: 'split' }, tiles, h('div', { class: 'split-r' }, h('div', { class: 'panel' }, chartEl, legend)))];
+}
+
+function recPopup(id) {
+  const r = RECS.find((x) => x.id === id); if (!r) return [h('p', {}, 'Unknown suggestion.')];
+  lastFit = true;
+  const [tone, word] = REC_STATE[r.state], preds = PREDS.filter((p) => p.domain === r.domain && p.ok);
+  const head = h('section', { class: 'dhead' }, h('div', { class: 'dh-main' }, h('span', { class: `sig ${tone}` }, h('i'), word), h('h2', { id: 'modal-title' }, r.title)), h('div', { class: 'dom-rules' }, h('span', { class: 'rc-verb' }, r.verb), ' ', h('span', { class: 'muted', style: { fontSize: '12px' } }, domName(r.domain))));
+  const card = (t, ...kids) => h('article', { class: 'ep' }, h('header', { class: 'ep-h' }, h('div', { class: 'ep-t' }, t)), h('div', { class: 'ep-body one' }, ...kids));
+  return [head, h('div', { class: 'pscroll' }, h('div', { class: 'panel narrow' },
+    card('What is happening', h('ul', { class: 'o-list' }, r.facts.map((l) => h('li', {}, l))), preds.length ? h('div', { class: 'o-links' }, preds.map((p) => h('a', { class: 'chip', href: `#/p/${p.key}` }, `Projection: ${p.label} ›`))) : null),
+    card('What could be done', h('ul', { class: 'o-list' }, r.consider.map((l) => h('li', {}, l))))))];
 }
 
 function overviewPage() {
@@ -480,11 +603,11 @@ function overviewPage() {
     h('span', { class: 'dc-go' }, 'Open ', h('span', { class: 'chev-r' }, '›')));
   const KEY = [['red', 'Red', 'high attention'], ['amber', 'Amber', 'increased attention'], ['green', 'Green', 'lower concern'], ['none', 'Grey', 'no priority defined']];
   const ordered = KEY.flatMap(([sig]) => R.domains.filter((d) => d.signal === sig));
-  return [patient(), briefs(), h('section', { class: 'domains' },
+  return [patient(), h('section', { class: 'domains' },
     h('div', { class: 'dom-intro' }, h('h2', {}, 'Domains'),
       h('details', { class: 'about' }, h('summary', {}, 'About the data'),
         h('div', { class: 'sigkey' }, KEY.map(([c, t, d]) => h('div', {}, sigPill(c), h('span', {}, d)))))),
-    h('div', { class: 'dgrid8' }, ordered.map(card)))];
+    h('div', { class: 'dgrid8' }, ordered.map(card))), outlookSections()];
 }
 
 function domainPage(id, tab, key) {
@@ -495,21 +618,20 @@ function domainPage(id, tab, key) {
   const evVar = data.vars[({ anthropometry: 'weight', glycemia: 'hba1c', bp: 'bp_clinic_sys', lipids: 'ldl', kidney: 'egfr', liver: 'alt', activity: 'ipaq', lifestyle: 'sleep' })[id]];
   const fuRow = id === 'glycemia' ? R.followup.find((x) => /^F[45]$/.test(x.rule || '')) : id === 'kidney' ? R.followup.find((x) => x.rule === 'F8') : id === 'lipids' ? R.followup.find((x) => x.rule === 'F7') : null;
   const head = h('section', { class: `dhead ${dom.signal}` },
-    h('div', { class: 'dh-main' }, sigPill(dom.signal), h('h1', {}, dom.name), h('span', { class: 'dom-line' }, dom.headline)),
-    h('div', { class: 'dom-rules' }, dom.rules.map(rid), dom.also.length ? [h('span', { class: 'muted', style: { fontSize: '11.5px' } }, 'also met:'), dom.also.map(rid)] : null,
-      fuRow ? h('span', { class: 'muted', style: { fontSize: '12.5px', marginLeft: '10px' } }, 'Suggested review: ', fuRow.next ? `${fuRow.label} by ${fmtDate(fuRow.next)} (${fuRow.text})` : fuRow.label, ' ') : null, fuRow ? rid(fuRow.rule) : null));
-  const seg = indicate(h('div', { class: 'seg' }, DOMTABS.map(([k, t]) => h('a', { href: `#/d/${id}/${k}${key ? '/' + key : ''}`, class: k === tab ? 'on' : '' }, t))), 'seg');
+    h('div', { class: 'dh-main' }, sigPill(dom.signal), h('h2', { id: 'modal-title' }, dom.name), h('span', { class: 'dom-line' }, dom.headline)),
+    h('div', { class: 'dom-rules' }, fuRow ? h('span', { class: 'muted', style: { fontSize: '12.5px' } }, 'Suggested review: ', fuRow.next ? `${fuRow.label} by ${fmtDate(fuRow.next)} (${fuRow.text})` : fuRow.label) : null));
+  const seg = indicate(h('div', { class: 'seg' }, DOMTABS.map(([k, t]) => h('a', { href: `#/d/${id}/${k}${key ? '/' + key : ''}`, 'aria-current': k === tab ? 'page' : null, class: k === tab ? 'on' : '' }, t))), 'seg');
   let body;
   lastFit = true; // every tab keeps the same popup size, so the tab bar never moves
   if (tab === 'values') {
     // values on the left, the trend of the selected one on the right
     if (!TABS[id].some(([k]) => k === sel[id])) sel[id] = TABS[id][0][0];
     const tiles = h('div', { class: 'tiles' }, tilesFor(id).filter(Boolean)), trend = trendPanel(dom, { chips: false });
-    const mark = () => tiles.querySelectorAll('.tile').forEach((t) => t.classList.toggle('on', t.dataset.key === sel[id]));
+    const mark = () => tiles.querySelectorAll('.tile').forEach((t) => { t.classList.toggle('on', t.dataset.key === sel[id]); if (t.getAttribute('role') === 'button') t.setAttribute('aria-pressed', String(t.dataset.key === sel[id])); });
     const OWN = { 'Glucose monitoring (CGM), last 90 days': 'cgm_mean', 'Home reading, latest': 'bp', 'Home mean, last 28 days': 'bp', 'Clinic reading, latest': 'bp', 'Goal and treatment': 'bp', 'Lp(a)': 'lpa', 'IPAQ-Short, latest': 'ipaq', 'Daily steps (wearable)': 'steps', 'Sedentary time': 'sedentary', 'Sleep, 7-night average': 'sleep' };
     const SHARED = { alt: 'liver', ast: 'liver', ggt: 'liver', bp_clinic_sys: 'bp' };
     tiles.querySelectorAll('.tile').forEach((t) => { const lab = t.querySelector('.tk span'), k = OWN[lab && lab.textContent] || SHARED[t.dataset.key]; if (k) t.dataset.key = k; });
-    tiles.querySelectorAll('.tile').forEach((t) => { t.dataset.dom = id; if (t.dataset.key && TABS[id].some(([k]) => k === t.dataset.key)) { t.style.cursor = 'pointer'; t.title = 'Show its trend'; t.addEventListener('click', () => { sel[id] = t.dataset.key; mark(); redraws.get(id)(); }); } });
+    tiles.querySelectorAll('.tile').forEach((t) => { t.dataset.dom = id; if (t.dataset.key && TABS[id].some(([k]) => k === t.dataset.key)) { t.style.cursor = 'pointer'; t.title = 'Show its trend'; t.tabIndex = 0; t.setAttribute('role', 'button'); const pick = () => { sel[id] = t.dataset.key; mark(); redraws.get(id)(); }; t.addEventListener('click', pick); t.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } }); } });
     mark();
     body = h('div', { class: 'split' }, tiles, h('div', { class: 'split-r' }, trend));
   } else body = episodesPanel(dom);
@@ -549,7 +671,7 @@ function graphsPage() {
     const a = gState.range === 'year' ? ms(AS_OF) - 365 * 864e5 : ms('2021-09-20'), b = ms(AS_OF) + 10 * 864e5;
     const made = items.map(([d, k]) => {
       const spec = specFor(k); spec.compact = true; spec.xmin = a; spec.xmax = b; spec.dx = (ms(data.meta.dx_date) >= a) ? ms(data.meta.dx_date) : null; spec.windows = []; spec.zones = [];
-      const el = h('div', { class: 'gchart' });
+      const el = h('div', { class: 'gchart', role: 'img', 'aria-label': chartSummary(spec) });
       const vk = labVar({ id: d }, k), v = data.vars[vk], sig = R.domains.find((x) => x.id === d).signal;
       const latest = k === 'bp' ? `${data.bp.last.sys}/${data.bp.last.dia} mmHg` : k === 'liver' ? `ALT ${data.vars.alt.latest.v} · AST ${data.vars.ast.latest.v} · GGT ${data.vars.ggt.latest.v}` : `${fv(vk, v.latest.v)} ${v.unit}`;
       grid.append(h('div', { class: 'gtile' }, h('div', { class: 'gd' }, R.domains.find((x) => x.id === d).name), h('div', { class: 'gh' }, h('a', { href: `#/d/${d}/trend/${k}`, title: 'Open the full trend' }, spec.title || v.label), h('span', { class: 'gv' }, h('b', {}, latest))), el, h('div', { class: 'grefs' }, (spec.refs || []).map((r) => { const m = /^([A-Z]\d)\b/.exec(r.label); return h('span', { class: 'gref' }, m ? rid(m[1]) : null, ` ${r.label.replace(/^[A-Z]\d:?\s*/, '')}`); }))));
@@ -575,33 +697,38 @@ function graphsPage() {
       h('label', {}, h('input', { type: 'checkbox', checked: gState.link ? true : null, onchange: (e) => { gState.link = e.target.checked; draw(); } }), 'Link the cursor across graphs'));
   };
   paint(); draw();
-  box.append(h('div', { class: 'card-head' }, h('div', {}, h('h2', {}, 'All graphs'), h('div', { class: 'sub' }, 'Every trend in one view on the same date axis, so one can be read against another. Hover for a value; click a title for the full trend with rules and events.'))), filters, grid);
+  box.append(h('div', { class: 'card-head' }, h('div', {}, h('h2', {}, 'All graphs'), h('div', { class: 'sub' }, 'Every trend in one view on the same date axis, so one can be read against another. Hover for a value; click a title to open it.'))), filters, grid);
   return box;
 }
 
 function parseRoute() {
   const p = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   if (p[0] === 'd') return { page: 'd', id: p[1], tab: p[2], key: p[3] };
+  if (p[0] === 'p' || p[0] === 'r') return { page: p[0], id: p[1] };
+  if (p[0] === 'schedule') return { page: 'schedule' };
   return { page: ['review', 'notices', 'graphs', 'rules'].includes(p[0]) ? p[0] : '' };
 }
 
-// one hover card for every title: shows the full rule text next to the cursor, readable in both themes
+// one hover card for every title: the full rule text, readable in both themes. It opens on hover, on keyboard focus and on a tap. The text also goes to assistive technology (aria-description).
+const TIP = h('div', { class: 'gtip', role: 'tooltip' }); document.body.append(TIP);
+const tipText = (t) => { const [first, ...rest] = t.dataset.tip.split('\n'); TIP.replaceChildren(rest.length ? h('b', {}, first) : first, rest.join('\n')); TIP.style.display = 'block'; };
+const putTip = (x, y) => { const w = TIP.offsetWidth, hh = TIP.offsetHeight; TIP.style.left = Math.max(8, Math.min(x, innerWidth - w - 8)) + 'px'; TIP.style.top = (y + hh > innerHeight - 8 ? Math.max(8, y - hh - 30) : y) + 'px'; };
+const tipTarget = (e) => e.target.closest && e.target.closest('[data-tip]');
+function bindTips() { document.querySelectorAll('[title]').forEach((t) => { const v = t.getAttribute('title'); if (!v) return; t.dataset.tip = v; t.removeAttribute('title'); if (!t.getAttribute('aria-description')) t.setAttribute('aria-description', v.replace(/\n/g, ' ')); }); }
 {
-  const tip = h('div', { class: 'gtip' }); document.body.append(tip);
-  const put = (e) => { const w = tip.offsetWidth, hh = tip.offsetHeight; tip.style.left = Math.max(8, Math.min(e.clientX + 14, innerWidth - w - 8)) + 'px'; tip.style.top = (e.clientY + 18 + hh > innerHeight ? e.clientY - hh - 12 : e.clientY + 18) + 'px'; };
-  document.addEventListener('mouseover', (e) => {
-    const t = e.target.closest && e.target.closest('[title],[data-tip]');
-    if (!t) { tip.style.display = 'none'; return; }
-    if (t.hasAttribute('title')) { t.dataset.tip = t.getAttribute('title'); t.removeAttribute('title'); }
-    const [first, ...rest] = t.dataset.tip.split('\n');
-    tip.replaceChildren(rest.length ? h('b', {}, first) : first, rest.join('\n')); tip.style.display = 'block'; put(e);
-  });
-  document.addEventListener('mousemove', (e) => { if (tip.style.display === 'block') put(e); });
-  document.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  document.addEventListener('mouseover', (e) => { const t = tipTarget(e); if (!t) { TIP.style.display = 'none'; return; } tipText(t); putTip(e.clientX + 14, e.clientY + 18); });
+  document.addEventListener('mousemove', (e) => { if (TIP.style.display === 'block' && tipTarget(e)) putTip(e.clientX + 14, e.clientY + 18); });
+  document.addEventListener('mouseleave', () => { TIP.style.display = 'none'; });
+  document.addEventListener('focusin', (e) => { const t = tipTarget(e); if (!t || !e.target.matches(':focus-visible')) return; tipText(t); const b = t.getBoundingClientRect(); putTip(b.left, b.bottom + 8); });
+  document.addEventListener('focusout', () => { TIP.style.display = 'none'; });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') TIP.style.display = 'none'; });
+  let tapT = 0;
+  document.addEventListener('click', (e) => { if (!matchMedia('(hover: none)').matches) return; const t = tipTarget(e); clearTimeout(tapT); if (!t || t.closest('a')) { TIP.style.display = 'none'; return; } tipText(t); const b = t.getBoundingClientRect(); putTip(b.left, b.bottom + 8); tapT = setTimeout(() => { TIP.style.display = 'none'; }, 5000); });
 }
 
 let lastPage = null, lastFit = false;
 // a big popup over the overview, with a close icon; the page behind is blurred. Closing plays a short reverse animation first.
+const MODAL_PAGES = ['d', 'p', 'r'];
 let closing = false, lastCard = null;
 document.addEventListener('pointerdown', (e) => { const c = e.target.closest && e.target.closest('.dcard'); if (c) { const b = c.getBoundingClientRect(); lastCard = { x: b.left + b.width / 2, y: b.top + b.height / 2 }; } }, true);
 function closeModal() {
@@ -612,13 +739,13 @@ function closeModal() {
   setTimeout(() => { closing = false; location.hash = '#/'; }, CALM.matches ? 100 : tok('--dur-popup-out', 240));
 }
 function modal(kids, fit) {
-  const box = h('div', { class: `modal${fit ? ' fit' : ''}`, role: 'dialog', 'aria-modal': 'true' },
+  const box = h('div', { class: `modal${fit ? ' fit' : ''}`, role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'modal-title', tabindex: '-1' },
     h('button', { class: 'mclose', type: 'button', 'aria-label': 'Close', title: 'Close', onclick: closeModal, html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>' }),
     h('div', { class: 'mbody' }, ...kids));
   // a tab switch inside an open popup redraws it: no open animation again, only a short cross-fade of the content
-  return h('div', { class: `modal-back${lastPage === 'd' ? ' swap' : ''}`, onclick: (e) => { if (e.target === e.currentTarget) closeModal(); } }, box);
+  return h('div', { class: `modal-back${MODAL_PAGES.includes(lastPage) ? ' swap' : ''}`, onclick: (e) => { if (e.target === e.currentTarget) closeModal(); } }, box);
 }
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && parseRoute().page === 'd') closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && MODAL_PAGES.includes(parseRoute().page)) closeModal(); });
 
 // pointer effects (all off for touch and reduced motion): domain cards tilt up to 4 degrees with a specular light and a border glow that follow the cursor,
 // the other cards get the glow only, the Print and theme buttons are pulled up to 4 px toward the cursor, and a faint blush light follows the pointer.
@@ -673,25 +800,47 @@ function syncFab() { const d = document.documentElement.dataset.theme === 'dark'
   addEventListener('scroll', window.__syncEdge, { passive: true }); addEventListener('resize', window.__syncEdge);
 }
 
+let wasWide = WIDE();
+window.addEventListener('resize', () => { if (WIDE() !== wasWide) { wasWide = WIDE(); go(); } });
 let firstDraw = true;
 function go() {
   charts.forEach((c) => c.dispose()); charts.clear(); redraws.clear();
   const r = parseRoute(), root = document.getElementById('root');
-  const content = r.page === 'd' ? (() => { const dp = domainPage(r.id, r.tab, r.key); return [...overviewPage(), modal(dp, lastFit)]; })() : r.page === 'review' ? [followup()] : r.page === 'notices' ? [notices()] : r.page === 'graphs' ? [graphsPage()] : r.page === 'rules' ? [rulesPage()] : overviewPage();
-  const cat = (p) => (p === '' || p === 'd' ? 'overview' : p), swapPage = !firstDraw && lastPage !== null && cat(lastPage) !== cat(r.page) && !CALM.matches;
+  const content = MODAL_PAGES.includes(r.page) ? (() => { const dp = r.page === 'd' ? domainPage(r.id, r.tab, r.key) : r.page === 'p' ? predPopup(r.id) : recPopup(r.id); return [...overviewPage(), modal(dp, lastFit)]; })() : r.page === 'review' ? [followup()] : r.page === 'notices' ? [notices()] : r.page === 'graphs' ? [graphsPage()] : r.page === 'rules' ? [rulesPage()] : overviewPage();
+  const cat = (p) => (p === '' || MODAL_PAGES.includes(p) ? 'overview' : p), swapPage = !firstDraw && lastPage !== null && cat(lastPage) !== cat(r.page) && !CALM.matches;
   if (firstDraw) { document.documentElement.classList.add('dv-enter'); setTimeout(() => document.documentElement.classList.remove('dv-enter'), 2200); }
+  document.body.classList.toggle('on-schedule', r.page === 'schedule');
+  if (r.page === 'schedule') {
+    root.replaceChildren(scheduleBar(AS_OF), schedulePage(AS_OF, () => { location.hash = '#/'; }));
+    document.body.classList.remove('noscroll'); window.scrollTo(0, 0); lastPage = 'schedule'; firstDraw = false; window.__syncEdge(); bindTips(); return;
+  }
   root.replaceChildren(topbar(r), h('div', { class: 'dv-body' }, sideNav(r), h('main', { class: `page${swapPage ? ' dv-swap' : ''}` }, ...content,
-    r.page === 'rules' ? null : h('a', { href: '#/rules', class: 'rules-cta' }, h('span', { class: 'rc-ic', html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h12a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3z"/><path d="M8 9h7M8 13h7"/></svg>' }), h('span', {}, h('b', {}, 'All rules'), h('small', {}, 'every rule the view applies, and which ones were used for her')), h('span', { class: 'rc-go' }, '›')),
     )));
-  document.body.classList.toggle('noscroll', r.page === 'd');
-  if (r.page !== 'd' && lastPage !== 'd') window.scrollTo(0, 0);
-  const opening = r.page === 'd' && lastPage !== 'd', pop = document.querySelector('.modal');
+  document.body.classList.toggle('noscroll', MODAL_PAGES.includes(r.page));
+  if (!MODAL_PAGES.includes(r.page) && !MODAL_PAGES.includes(lastPage)) window.scrollTo(0, 0);
+  const opening = MODAL_PAGES.includes(r.page) && !MODAL_PAGES.includes(lastPage), pop = document.querySelector('.modal');
   if (opening && pop && lastCard) { const b = pop.getBoundingClientRect(); pop.style.transformOrigin = `${lastCard.x - b.left}px ${lastCard.y - b.top}px`; }
   if (firstDraw) revealCards();
-  lastPage = r.page; firstDraw = false; window.__syncEdge();
+  bindTips(); modalFocus(r); lastPage = r.page; lastHash = location.hash; firstDraw = false; window.__syncEdge();
+}
+// while a popup is open the page behind it (bar, rail, content, notes orb) is inert; focus moves into the popup and returns to the card that opened it
+let lastHash = '';
+function modalFocus(r) {
+  const open = MODAL_PAGES.includes(r.page), back = document.querySelector('.modal-back'), main = document.querySelector('main.page');
+  const behind = [document.querySelector('.topbar'), document.querySelector('.dv-side'), document.querySelector('.scribe-root'), ...(main ? [...main.children].filter((el) => el !== back) : [])];
+  behind.forEach((el) => { if (el) { if (open) el.setAttribute('inert', ''); else el.removeAttribute('inert'); } });
+  if (open && back) {
+    const dlg = back.querySelector('.modal');
+    if (!MODAL_PAGES.includes(lastPage)) dlg.focus({ preventScroll: true });
+    else { const on = dlg.querySelector('.seg a.on'); if (on && (document.activeElement === document.body || !dlg.contains(document.activeElement))) on.focus({ preventScroll: true }); }
+  } else if (!open && MODAL_PAGES.includes(lastPage)) {
+    const back2 = document.querySelector(`a.dcard[href="${lastHash.split('/').slice(0, 3).join('/')}"]`); if (back2) back2.focus({ preventScroll: true });
+  }
 }
 { const q = new URLSearchParams(location.search); if (q.get('lanes')) q.get('lanes').split(',').forEach((k) => { if (k in lanesOn) lanesOn[k] = true; }); }
 window.addEventListener('hashchange', go);
 window.addEventListener('resize', () => charts.forEach((c) => c.resize()));
+if (!location.hash) history.replaceState(null, '', location.pathname + location.search + '#/schedule'); // the first screen is today's schedule
 go();
+initScribe();
 window.__nmg = { data, R };

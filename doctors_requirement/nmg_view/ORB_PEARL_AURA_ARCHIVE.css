@@ -1,0 +1,80 @@
+/* Archived: the earlier CSS-only orbs (pearl bubble and aura ring) from the Visit notes work. Not loaded. */
+
+/* ---- VISIT NOTES: a living glass orb and a notepad panel (UI only). The orb is the one always-moving element; it stands still under reduced motion. ---- */
+@property --o1 { syntax: "<color>"; inherits: true; initial-value: #ff6fb5; } @property --o2 { syntax: "<color>"; inherits: true; initial-value: #9b6cff; } @property --o3 { syntax: "<color>"; inherits: true; initial-value: #5b7dff; }
+.scribe-root { --o1: #ff6fb5; --o2: #9b6cff; --o3: #5b7dff; --lvl: 0; position: fixed; right: 22px; bottom: 76px; z-index: 46; transition: --o1 .7s var(--ease-settle), --o2 .7s var(--ease-settle), --o3 .7s var(--ease-settle); }
+.scribe-root[data-speaker="doctor"] { --o1: #ff4fa3; --o2: #ff9bd2; --o3: #c04bff; }
+.scribe-root[data-speaker="patient"] { --o1: #7a5cff; --o2: #4f7bff; --o3: #c1a0ff; }
+.scribe-root { --sp-doc: #B0245F; --sp-pat: #5A45C8; --sp-doc-bg: rgba(255, 79, 163, .11); --sp-pat-bg: rgba(122, 92, 255, .11); }
+:root[data-theme="dark"] .scribe-root { --sp-doc: #FF93C8; --sp-pat: #BBAAFF; --sp-doc-bg: rgba(255, 79, 163, .16); --sp-pat-bg: rgba(122, 92, 255, .2); }
+.scribe-orb { appearance: none; border: 0; background: none; padding: 0; margin: 0; width: 64px; height: 64px; border-radius: 50%; cursor: pointer; display: block; position: relative; transition: transform var(--dur-lift) var(--ease-spring); }
+.scribe-orb:hover { transform: scale(1.06); } .scribe-orb:active { transform: scale(.96); } .scribe-orb:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+.orb { --s: 64px; position: relative; display: block; width: var(--s); height: var(--s); border-radius: 50%; overflow: hidden; isolation: isolate;
+  background: radial-gradient(circle at 34% 28%, #ffffff 0%, #f4e9ff 38%, color-mix(in srgb, var(--o2) 38%, #ffe3f3) 100%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .85), inset 0 0 calc(var(--s) * .12) rgba(255, 255, 255, .9), 0 8px 24px color-mix(in srgb, var(--o2) 38%, transparent), 0 0 calc(14px + 24px * var(--lvl)) color-mix(in srgb, var(--o1) 40%, transparent); transform: scale(calc(1 + var(--lvl) * .07)); transition: transform .14s ease-out, box-shadow .3s ease; }
+.orb-s { --s: 38px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .85), inset 0 0 5px rgba(255, 255, 255, .9), 0 3px 12px color-mix(in srgb, var(--o2) 40%, transparent); transform: none; }
+.ob { position: absolute; display: block; border-radius: 46% 54% 52% 48% / 55% 45% 58% 42%; filter: blur(calc(var(--s) * .012)); opacity: .96; will-change: transform; box-shadow: inset 0 calc(var(--s) * .04) calc(var(--s) * .05) rgba(255, 255, 255, .7), inset 0 calc(var(--s) * -.05) calc(var(--s) * .07) color-mix(in srgb, var(--o3) 70%, #2a0a4a), 0 0 0 1px rgba(255, 255, 255, .35); }
+.b1 { width: 74%; height: 54%; left: 4%; top: 12%; background: linear-gradient(135deg, var(--o1), var(--o3)); animation: ob1 11s ease-in-out infinite; }
+.b2 { width: 60%; height: 60%; right: 2%; top: 32%; background: linear-gradient(200deg, var(--o2), var(--o3) 78%); animation: ob2 14s ease-in-out infinite; }
+.b3 { width: 58%; height: 44%; left: 14%; bottom: 0; background: linear-gradient(20deg, var(--o3), var(--o1)); animation: ob3 9s ease-in-out infinite; }
+.b4 { width: 34%; height: 34%; left: 36%; top: 34%; background: radial-gradient(circle, rgba(255, 255, 255, .6), transparent 72%); opacity: .5; box-shadow: none; filter: blur(calc(var(--s) * .04)); animation: ob4 7s ease-in-out infinite; }
+@keyframes ob1 { 0%, 100% { transform: translate(0, 0) rotate(0) scale(1); border-radius: 46% 54% 52% 48% / 55% 45% 58% 42%; } 33% { transform: translate(14%, 10%) rotate(38deg) scale(1.08); border-radius: 58% 42% 40% 60% / 44% 58% 42% 56%; } 66% { transform: translate(-8%, 16%) rotate(-24deg) scale(.94); border-radius: 40% 60% 56% 44% / 60% 42% 58% 40%; } }
+@keyframes ob2 { 0%, 100% { transform: translate(0, 0) rotate(0); border-radius: 52% 48% 44% 56% / 48% 56% 44% 52%; } 50% { transform: translate(-18%, -14%) rotate(-52deg) scale(1.1); border-radius: 44% 56% 58% 42% / 56% 40% 60% 44%; } }
+@keyframes ob3 { 0%, 100% { transform: translate(0, 0) rotate(0) scale(1); } 40% { transform: translate(16%, -18%) rotate(46deg) scale(1.12); } 75% { transform: translate(-12%, -6%) rotate(-30deg) scale(.92); } }
+@keyframes ob4 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(12%, -16%) scale(1.3); } }
+.orb-spec { position: absolute; left: 12%; top: 7%; width: 54%; height: 34%; border-radius: 50%; background: radial-gradient(ellipse at 40% 40%, rgba(255, 255, 255, .85), rgba(255, 255, 255, 0) 70%); transform: rotate(-24deg); pointer-events: none; }
+.orb-rim { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; background: conic-gradient(from 200deg, #ff9ad5, #9a86ff, #62d3ff, #ffb08a, #ff9ad5); opacity: .6; -webkit-mask: radial-gradient(circle, transparent 70%, #000 99%); mask: radial-gradient(circle, transparent 70%, #000 99%); animation: orim 18s linear infinite; }
+@keyframes orim { to { transform: rotate(360deg); } }
+.scribe-root.paused .ob, .scribe-root.paused .orb-rim { animation-play-state: paused; }
+/* panel */
+.sc-panel { position: absolute; right: 0; bottom: 80px; width: min(380px, calc(100vw - 32px)); height: min(540px, calc(100vh - 170px)); display: flex; flex-direction: column; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 0 0 1px var(--hair-out), var(--pop); transform-origin: 100% 100%; animation: sc-open .34s var(--ease-settle) backwards; }
+.sc-panel[hidden] { display: none; }
+@keyframes sc-open { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+.sc-head { display: flex; align-items: center; gap: 12px; padding: 14px 14px 12px 16px; border-bottom: 1px solid var(--line); }
+.sc-title { flex: 1; min-width: 0; } .sc-name { font-family: var(--font-serif); font-weight: 560; font-size: 17px; letter-spacing: -.01em; color: var(--ink); }
+.sc-stat { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); }
+.sc-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--o1); box-shadow: 0 0 0 3px color-mix(in srgb, var(--o1) 22%, transparent); transition: background .5s; }
+.scribe-root.paused .sc-dot { background: var(--muted); box-shadow: none; }
+.sc-actions { display: flex; gap: 4px; }
+.sc-btn { appearance: none; border: 0; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: var(--ink-2); background: var(--ctl); cursor: pointer; transition: background var(--dur-micro) var(--ease-settle), transform var(--dur-micro) var(--ease-settle); }
+.sc-btn:hover { background: color-mix(in srgb, var(--ink) 12%, transparent); color: var(--ink); } .sc-btn:active { transform: scale(.94); }
+.sc-who { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px 14px 6px; }
+.sc-who span { text-align: center; font-size: 12px; font-weight: 600; padding: 6px 0; border-radius: 10px; color: var(--muted); background: var(--ctl); transition: background .35s var(--ease-settle), color .35s var(--ease-settle); }
+.sc-who span[data-w="D"].on { background: var(--sp-doc-bg); color: var(--sp-doc); } .sc-who span[data-w="P"].on { background: var(--sp-pat-bg); color: var(--sp-pat); }
+.sc-log { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 14px 12px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
+.sc-msg { max-width: 86%; display: flex; flex-direction: column; gap: 3px; animation: sc-in .3s var(--ease-settle) backwards; }
+@keyframes sc-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.sc-msg.doc { align-self: flex-start; } .sc-msg.pat { align-self: flex-end; }
+.sc-meta { display: flex; align-items: baseline; gap: 8px; font-size: 11px; color: var(--muted); } .sc-msg.pat .sc-meta { flex-direction: row-reverse; }
+.sc-who-l { font-weight: 650; letter-spacing: .02em; } .doc .sc-who-l { color: var(--sp-doc); } .pat .sc-who-l { color: var(--sp-pat); }
+.sc-meta time { font-variant-numeric: tabular-nums; }
+.sc-msg p { margin: 0; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; color: var(--ink); } .doc p { background: var(--sp-doc-bg); border-top-left-radius: 5px; } .pat p { background: var(--sp-pat-bg); border-top-right-radius: 5px; }
+.sc-msg.live .sc-t::after { content: ""; display: inline-block; width: 2px; height: 1em; margin-left: 2px; vertical-align: -2px; background: currentColor; animation: sc-caret 1s steps(1) infinite; }
+@keyframes sc-caret { 50% { opacity: 0; } }
+.sc-foot { display: flex; align-items: center; gap: 12px; padding: 10px 16px 12px; border-top: 1px solid var(--line); }
+.sc-eq { display: flex; align-items: flex-end; gap: 3px; height: 18px; } .sc-eq i { width: 3px; height: 4px; border-radius: 2px; background: var(--muted); transition: background .3s; }
+.scribe-root.speaking .sc-eq i { background: var(--o1); animation: sc-eq .9s ease-in-out infinite; } .sc-eq i:nth-child(2) { animation-delay: .12s !important; } .sc-eq i:nth-child(3) { animation-delay: .24s !important; } .sc-eq i:nth-child(4) { animation-delay: .06s !important; } .sc-eq i:nth-child(5) { animation-delay: .18s !important; }
+@keyframes sc-eq { 0%, 100% { height: 4px; } 50% { height: 17px; } }
+.sc-demo { font-size: 11.5px; color: var(--muted); }
+.themefab { right: 33px; bottom: 18px; }
+@media (max-width: 520px) { .scribe-root { right: 12px; bottom: 70px; } .themefab { right: 23px; bottom: 12px; } }
+@media (prefers-reduced-motion: reduce) { .ob, .orb-rim, .sc-panel, .sc-msg, .sc-eq i, .sc-msg.live .sc-t::after { animation: none !important; } .orb { transition: none; transform: none; } .scribe-orb { transition: none; } .scribe-root { transition: none; } }
+@media print { .scribe-root { display: none !important; } }
+
+/* ---- the "aura" logo (the live suggestion): a frosted disc with a slowly turning pink-to-purple ring and five voice bars at its heart. The pearl bubble above is kept: add ?orb=pearl to the address to bring it back. ---- */
+.orb.aura { background: radial-gradient(circle at 50% 36%, #ffffff 0%, #fbf4ff 58%, color-mix(in srgb, var(--o2) 16%, #ffffff) 100%); overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .95), 0 8px 24px color-mix(in srgb, var(--o2) 32%, transparent), 0 0 calc(14px + 26px * var(--lvl)) color-mix(in srgb, var(--o1) 42%, transparent); }
+.orb.aura.orb-s { box-shadow: 0 0 0 1px rgba(255, 255, 255, .95), 0 3px 10px color-mix(in srgb, var(--o2) 30%, transparent); }
+.ar-ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, var(--o1), var(--o3), var(--o2), var(--o1)); -webkit-mask: radial-gradient(circle closest-side, transparent 82%, #000 84%); mask: radial-gradient(circle closest-side, transparent 82%, #000 84%); animation: ar-spin 7s linear infinite; }
+.ar-glow { position: absolute; inset: 14%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--o1) 26%, transparent), transparent 68%); animation: ar-breathe 3.2s ease-in-out infinite; }
+.ar-core { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: calc(var(--s) * .05); }
+.ar-core b { display: block; width: calc(var(--s) * .075); border-radius: calc(var(--s) * .05); background: linear-gradient(180deg, var(--o1), var(--o2)); transform: scaleY(var(--k, 1)); animation: ar-idle 2.6s ease-in-out infinite; }
+.ar-core b:nth-child(1) { height: calc(var(--s) * .2); animation-delay: 0s; } .ar-core b:nth-child(2) { height: calc(var(--s) * .34); animation-delay: .25s; } .ar-core b:nth-child(3) { height: calc(var(--s) * .46); animation-delay: .5s; }
+.ar-core b:nth-child(4) { height: calc(var(--s) * .34); animation-delay: .75s; } .ar-core b:nth-child(5) { height: calc(var(--s) * .2); animation-delay: 1s; }
+.scribe-root.speaking .ar-core b { animation: ar-dance .62s ease-in-out infinite; } .scribe-root.speaking .ar-core b:nth-child(2) { animation-delay: .1s; } .scribe-root.speaking .ar-core b:nth-child(3) { animation-delay: .2s; } .scribe-root.speaking .ar-core b:nth-child(4) { animation-delay: .05s; } .scribe-root.speaking .ar-core b:nth-child(5) { animation-delay: .15s; }
+@keyframes ar-spin { to { transform: rotate(360deg); } }
+@keyframes ar-breathe { 0%, 100% { opacity: .5; transform: scale(.9); } 50% { opacity: 1; transform: scale(1.05); } }
+@keyframes ar-idle { 0%, 100% { transform: scaleY(.62); } 50% { transform: scaleY(1); } }
+@keyframes ar-dance { 0%, 100% { transform: scaleY(.5); } 50% { transform: scaleY(1.45); } }
+.scribe-root.paused .ar-ring, .scribe-root.paused .ar-core b, .scribe-root.paused .ar-glow { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .ar-ring, .ar-glow, .ar-core b { animation: none !important; } }
