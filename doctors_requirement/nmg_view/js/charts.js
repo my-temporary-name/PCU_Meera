@@ -5,7 +5,7 @@ import { fmtDate, ms, MON } from './ui.js';
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 export const palette = () => ({
   ink: css('--ink'), ink2: css('--ink-2'), muted: css('--muted'), line: css('--line'), surface: css('--surface'), surface2: css('--surface-2'),
-  primary: css('--primary'), primaryInk: css('--primary-ink'), ep: css('--ep'), warn: css('--warn'), bad: css('--bad'), low: css('--low'), ok: css('--ok'), font: css('--font'),
+  primary: css('--primary'), primaryInk: css('--primary-ink'), ep: css('--ep'), warn: css('--warn'), bad: css('--bad'), low: css('--low'), ok: css('--ok'), c4: css('--c4'), c5: css('--c5'), font: css('--font'),
 });
 
 const LEFT0 = 132, RIGHT0 = 150, TOP0 = 30, BOTTOM0 = 46, ROW = 20, LEFT_LANES = 132;
@@ -47,10 +47,10 @@ export function trendChart(el, spec, lanes, events) {
   if (spec.dx && spec.dx >= spec.xmin && spec.dx <= spec.xmax) markLines.push({ xAxis: spec.dx, lineStyle: { color: P.ink, type: 'solid', width: 1.3, opacity: 0.7 }, label: { show: !cp, formatter: 'Type 2 diabetes diagnosed', position: 'insideStartTop', rotate: 90, color: P.ink, fontSize: 11, fontWeight: 600, distance: 4 } });
   if (spec.baseline) markLines.push([{ coord: [spec.baseline.from, spec.baseline.value], lineStyle: { color: P.primaryInk, type: 'solid', width: 2, opacity: 0.9 }, label: { show: false } }, { coord: [spec.baseline.to, spec.baseline.value] }]);
   const markAreas = [];
-  const ZC = { green: 'rgba(95,189,140,.13)', amber: 'rgba(242,182,74,.17)', red: 'rgba(230,106,126,.15)' };
+  const ZC = { green: 'rgba(56,160,108,.13)', amber: 'rgba(224,160,42,.17)', red: 'rgba(217,59,43,.13)' };
   (spec.zones || []).forEach((z) => markAreas.push([{ yAxis: z.from == null ? ymin : z.from, itemStyle: { color: ZC[z.signal] }, label: { show: false } }, { yAxis: z.to == null ? ymax : z.to }]));
-  if (spec.band) markAreas.push([{ yAxis: spec.band.lo, itemStyle: { color: 'rgba(95,189,140,.10)' }, label: { show: !cp, formatter: spec.band.label, position: 'insideBottomLeft', color: P.ink2, fontSize: 11 } }, { yAxis: spec.band.hi }]);
-  (spec.windows || []).forEach((w) => markAreas.push([{ xAxis: w.from, itemStyle: { color: w.color || 'rgba(107,184,171,.14)' }, label: { show: !cp && !!w.label, formatter: w.label, position: 'insideTop', color: P.primaryInk, fontSize: 11, fontWeight: 600 } }, { xAxis: w.to }]));
+  if (spec.band) markAreas.push([{ yAxis: spec.band.lo, itemStyle: { color: 'rgba(56,160,108,.10)' }, label: { show: !cp, formatter: spec.band.label, position: 'insideBottomLeft', color: P.ink2, fontSize: 11 } }, { yAxis: spec.band.hi }]);
+  (spec.windows || []).forEach((w) => markAreas.push([{ xAxis: w.from, itemStyle: { color: w.color || 'rgba(155,133,144,.16)' }, label: { show: !cp && !!w.label, formatter: w.label, position: 'insideTop', color: P.primaryInk, fontSize: 11, fontWeight: 600 } }, { xAxis: w.to }]));
 
   const line = (l, i) => ({
     type: 'line', name: l.name, xAxisIndex: 0, yAxisIndex: 0, z: 4, silent: false, smooth: false, connectNulls: false,
@@ -64,7 +64,7 @@ export function trendChart(el, spec, lanes, events) {
 
   // ---- the event lanes
   const cats = rows.map((r) => r.label);
-  const medColors = [P.primary, P.ep, P.low, P.warn, P.bad];
+  const medColors = [P.ink2, P.low, P.ep, P.c4, P.c5];
   rows.forEach((r, ri) => {
     if (r.type === 'med') {
       const s = Math.max(ms(r.m.start), spec.xmin), e = Math.min(r.m.end ? ms(r.m.end) : spec.xmax, spec.xmax);
@@ -80,14 +80,14 @@ export function trendChart(el, spec, lanes, events) {
       const sel = events.filter(pick).filter((e) => ms(e.d) >= spec.xmin && ms(e.d) <= spec.xmax);
       const shape = { visit: ['circle', 9], dx: ['triangle', 11], diary: ['circle', 6] }[r.type];
       series.push({ type: 'scatter', xAxisIndex: 1, yAxisIndex: 1, z: 3, name: r.type, symbol: shape[0], symbolSize: shape[1],
-        itemStyle: { color: r.type === 'diary' ? P.muted : r.type === 'dx' ? P.warn : P.primaryInk, borderColor: P.surface, borderWidth: 1 },
+        itemStyle: { color: r.type === 'diary' ? P.muted : r.type === 'dx' ? P.ep : P.primaryInk, borderColor: P.surface, borderWidth: 1 },
         data: sel.map((e) => ({ value: [ms(e.d), ri], tip: `<b>${fmtDate(e.d)}</b><br>${e.text}`, b: e.b, symbol: e.kind === 'imaging' ? 'diamond' : shape[0], symbolSize: e.kind === 'imaging' ? 12 : shape[1], itemStyle: e.kind === 'imaging' ? { color: P.ep } : undefined })) });
     }
   });
 
   const xAxis = (idx, show) => ({ type: 'time', gridIndex: idx, min: spec.xmin, max: spec.xmax, axisLabel: { show: false }, axisTick: { show: false }, axisLine: { show: idx === 1 || !rows.length, lineStyle: { color: P.line } }, splitLine: { show: false }, axisPointer: { show: idx === 0, lineStyle: { color: P.ink2, opacity: 0.5 }, label: { show: true, color: P.ink, backgroundColor: P.surface2, borderColor: P.line, borderWidth: 1, padding: [4, 8], fontWeight: 600, shadowBlur: 0, formatter: (q) => fmtDate(new Date(q.value).toISOString().slice(0, 10)) } } });
   const option = {
-    animationDuration: 300, textStyle: { fontFamily: P.font, color: P.ink2 },
+    animation: !spec.still && !(spec.draw && matchMedia('(prefers-reduced-motion: reduce)').matches), animationDuration: spec.draw ? 1000 : 300, animationEasing: 'cubicOut', textStyle: { fontFamily: P.font, color: P.ink2 },
     grid: [{ left: LEFT, right: RIGHT, top: TOP, height: mainH }].concat(rows.length ? [{ left: LEFT, right: RIGHT, top: laneTop, height: laneH }] : []),
     xAxis: [xAxis(0)].concat(rows.length ? [xAxis(1)] : []),
     yAxis: [{ type: 'value', gridIndex: 0, min: ymin, max: ymax, interval: step, name: spec.unit, nameTextStyle: { color: P.muted, align: 'right', padding: [0, 6, 0, 0] }, axisLabel: { color: P.muted, formatter: (v) => Number(v.toFixed(spec.dec + 1)).toString() }, splitLine: { lineStyle: { color: P.line, type: [4, 6], opacity: 0.7 } }, axisLine: { show: false }, axisTick: { show: false } }]
