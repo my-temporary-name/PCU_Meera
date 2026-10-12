@@ -154,7 +154,8 @@ details.vals { font-size: 12.5px; } details.vals summary { cursor: pointer; font
 .about .small { font-size: 12.5px; color: var(--ink-2); margin-top: 8px; max-width: 980px; }
 .about .sigkey { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px 14px; margin-top: 10px; font-size: 12.5px; }
 .about .sigkey > div { display: flex; gap: 8px; align-items: center; }
-.dgrid8 { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+.dgrid8 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1100px) { .dgrid8 { grid-template-columns: repeat(2, minmax(0, 1fr)); } } @media (max-width: 640px) { .dgrid8 { grid-template-columns: 1fr; } }
 .dcard { display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent, var(--sg-none)); border-radius: var(--radius); padding: 16px 18px; text-decoration: none; color: inherit; box-shadow: var(--shadow); position: relative; transition: transform .12s, border-color .12s; }
 .dcard.green { --accent: var(--sg-green); } .dcard.amber { --accent: var(--sg-amber); } .dcard.red { --accent: var(--sg-red); }
 .dcard:hover { transform: translateY(-2px); border-color: var(--accent); }
@@ -215,17 +216,478 @@ details.vals { font-size: 12.5px; } details.vals summary { cursor: pointer; font
 .rules-cta:hover { transform: translateY(-2px); border-color: var(--primary); }
 .rules-cta .rc-ic { display: inline-flex; color: var(--primary-ink); } .rules-cta b { font-size: 13.5px; margin-right: 8px; } .rules-cta small { color: var(--ink-2); font-size: 12px; } .rules-cta .rc-go { font-size: 18px; font-weight: 700; color: var(--primary-ink); }
 
-/* patient banner v2: three labelled columns */
-.pband { display: grid; grid-template-columns: minmax(250px, 1fr) minmax(280px, 1.5fr) minmax(300px, 1.3fr); gap: 0; padding: 0; overflow: hidden; }
-.pband .pb-col { padding: 16px 20px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.pband .pb-col + .pb-col { border-left: 1px solid var(--line); }
-.pband .pb-k { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); min-width: 0; display: flex; gap: 8px; align-items: baseline; margin-bottom: 2px; }
-.pband .pb-k small { font-size: 11px; font-weight: 500; text-transform: none; letter-spacing: 0; }
-.pband .pb-name { font-size: 19px; font-weight: 750; } .pband .pb-line { font-size: 13px; color: var(--ink); } .pband .pb-line.muted { color: var(--muted); }
-.pb-state { margin-top: 6px; padding: 8px 10px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; } .pb-state b { font-size: 14px; } .pb-state .rid { align-self: flex-start; margin-top: 2px; }
-.pb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.pband .pb-note { font-size: 12px; color: var(--muted); margin-top: auto; padding-top: 6px; }
-.pb-meds { display: flex; flex-direction: column; gap: 6px; }
-.pb-med { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; padding-bottom: 6px; border-bottom: 1px dashed var(--line); } .pb-med .num { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; white-space: nowrap; }
-.pb-allergy { display: flex; gap: 8px; align-items: center; font-size: 12.5px; background: var(--bad-soft); border-radius: 10px; padding: 5px 10px; color: var(--ink-2); } .pb-allergy b { color: var(--ink); }
-@media (max-width: 980px) { .pband { grid-template-columns: 1fr; } .pband .pb-col + .pb-col { border-left: 0; border-top: 1px solid var(--line); } }
+/* patient banner: same look as the Full year page (soft card, initials avatar, name, facts), with the details in three separate panels */
+.pband { background: var(--primary-soft); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 22px 20px; display: grid; grid-template-columns: auto 1fr; gap: 14px 18px; align-items: center; }
+.avatar { width: 64px; height: 64px; border-radius: 20px; background: var(--primary); overflow: hidden; display: block; } .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pb-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pb-facts { display: flex; flex-wrap: wrap; gap: 2px 18px; color: var(--ink-2); font-size: 13.5px; }
+.pb-state { font-size: 13.5px; color: var(--ink-2); } .pb-state b { color: var(--ink); }
+.pb-secs { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(250px, 1.4fr) minmax(280px, 1.2fr) minmax(240px, 1fr) minmax(150px, .55fr); gap: 12px; }
+.pb-sec { background: color-mix(in srgb, var(--surface) 72%, transparent); border: 1px solid var(--line); border-top: 3px solid var(--primary); border-radius: 14px; padding: 12px 14px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pb-h { display: flex; align-items: baseline; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-2); } .pb-h i { display: none; } .pb-h small { font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.pb-tags { display: flex; flex-wrap: wrap; gap: 6px; } .pb-sec .chip { background: var(--surface); border-color: var(--line); color: var(--ink); }
+.pb-note { font-size: 12px; color: var(--muted); margin-top: auto; }
+.pb-meds { display: flex; flex-direction: column; } .pb-med { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--line); } .pb-med:first-child { padding-top: 0; } .pb-med:last-child { border-bottom: 0; }
+.pb-med small { color: var(--muted); font-weight: 500; } .pb-med .num { display: inline-flex; align-items: center; font-weight: 650; white-space: nowrap; }
+.pb-allergy { display: flex; flex-direction: column; gap: 1px; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); } .pb-allergy span { color: var(--ink-2); font-size: 12px; }
+@media (max-width: 1100px) { .pb-secs { grid-template-columns: 1fr 1fr; } } @media (max-width: 720px) { .pb-secs { grid-template-columns: 1fr; } } @media (max-width: 720px) { .pband { grid-template-columns: 1fr; } }
+
+/* four short cards under the banner */
+.briefs { display: grid; grid-template-columns: 1fr 1fr 1.5fr 1fr; gap: 12px; }
+.brief { background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--primary); border-radius: 14px; padding: 12px 16px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; box-shadow: var(--shadow); }
+.brief .pb-h { margin-bottom: 2px; flex-wrap: wrap; }
+.brief { padding: 0 0 14px; gap: 10px; overflow: hidden; font-family: "DM Sans", var(--font); }
+.brief .bh { background: var(--primary-soft); border-bottom: 1px solid var(--line); padding: 11px 18px; min-height: 64px; justify-content: center; display: flex; flex-direction: column; gap: 1px; font-family: var(--font); }
+.brief .bh span { font-size: 14.5px; font-weight: 750; letter-spacing: -.005em; color: var(--primary-ink); } .brief .bh small { font-size: 11.5px; font-weight: 500; color: var(--ink-2); }
+.brief ul { list-style: none; margin: 0; padding: 4px 18px 0; display: flex; flex-direction: column; gap: 9px; }
+.brief li { position: relative; padding-left: 16px; font-size: 14px; line-height: 1.55; color: var(--ink-2); } .brief li b { color: var(--ink); font-weight: 650; }
+.brief li::before { content: ""; position: absolute; left: 0; top: .62em; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+@media (max-width: 1180px) { .briefs { grid-template-columns: 1fr 1fr; } } @media (max-width: 720px) { .briefs { grid-template-columns: 1fr; } }
+
+/* values on the left, the selected trend on the right */
+.split { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.split .tiles { grid-template-columns: 1fr; gap: 10px; } .split .tile { padding: 12px 14px; }
+.split .tile.on { border-color: var(--primary); background: var(--primary-soft); box-shadow: inset 3px 0 0 var(--primary); }
+.split-r { position: sticky; top: 0; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+@media (max-width: 960px) { .split { grid-template-columns: 1fr; } .split-r { position: static; } }
+
+/* values tab: the popup keeps its size and only the list of values on the left scrolls */
+.modal.fit { height: calc(100vh - 56px); } .modal.fit .mbody { overflow: hidden; } .modal.fit .mbody > * { flex-shrink: 0; }
+.modal.fit .mbody > .split { flex: 1 1 0; min-height: 0; flex-shrink: 1; grid-template-rows: minmax(0, 1fr); align-items: stretch; }
+.modal.fit .split .tiles { overflow-y: auto; min-height: 0; align-content: start; padding-right: 6px; }
+.modal.fit .split-r { position: static; overflow-y: auto; min-height: 0; }
+@media (max-width: 960px) { .modal.fit { height: auto; } .modal.fit .mbody { overflow-y: auto; } .modal.fit .mbody > .split { flex: none; grid-template-rows: none; } .modal.fit .split .tiles, .modal.fit .split-r { overflow: visible; } }
+
+/* domain popup */
+body.noscroll { overflow: hidden; }
+.modal-back { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 28px; background: color-mix(in srgb, var(--ink) 22%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.modal { position: relative; width: min(1360px, 100%); max-height: calc(100vh - 56px); height: auto; display: flex; background: var(--bg); border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 24px 70px rgba(16, 32, 29, .28); }
+.mbody { overflow-y: auto; padding: 22px 24px 26px; display: flex; flex-direction: column; gap: 14px; width: 100%; min-width: 0; border-radius: 22px; }
+.mclose { position: absolute; top: 14px; right: 14px; z-index: 2; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.mclose:hover { color: var(--ink); border-color: var(--primary); }
+.modal .dhead { padding-right: 56px; }
+@media (max-width: 720px) { .modal { max-height: calc(100vh - 20px); } .modal-back { padding: 10px; } .mbody { padding: 16px; } }
+
+/* ======================================================================================================================================================
+   Visual refresh, "Berry and blush" with a Liquid-Glass material system (this file is loaded only by the Doctor's view; the backlight layers are
+   pseudo-elements of this page's body, so they cannot reach other tabs). Glass is the material of the floating control layer only (the tab bar, the popups);
+   the content cards are solid or statically translucent with NO backdrop-filter. Everything below is one block: delete it (and its @font-face) to revert.
+   Scales: radius 8 (chips) / 12 (inner blocks and controls) / 20 (cards) / 24 (the bar) / 28 (popup); one hairline weight (1px); three shadow steps.
+   Blurred layers in view at any time: at most 3 (bar + edge strip, or bar + popup + scrim).
+   ====================================================================================================================================================== */
+@font-face { font-family: "DM Sans"; font-style: normal; font-weight: 100 1000; font-display: swap; src: url("../fonts/dm-sans-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Newsreader"; font-style: normal; font-weight: 200 800; font-display: swap; src: url("../fonts/newsreader-latin-wght-normal.woff2") format("woff2"); }
+@property --glow { syntax: "<number>"; inherits: false; initial-value: 0; }
+/* the quiet-to-colour swap animates these registered colour tokens (never a filter, so no backdrop-filter ancestor is affected) */
+@property --qi { syntax: "<color>"; inherits: true; initial-value: transparent; } @property --qi2 { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --qm { syntax: "<color>"; inherits: true; initial-value: transparent; } @property --ql { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --qt { syntax: "<color>"; inherits: true; initial-value: transparent; } @property --qa { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --qs { syntax: "<color>"; inherits: true; initial-value: transparent; } @property --qsur { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --qsince { syntax: "<color>"; inherits: true; initial-value: transparent; } @property --qfill { syntax: "<color>"; inherits: true; initial-value: transparent; }
+:root {
+  /* palette (light). The page is white by the user's choice; the backlight is switched off in light mode (--bl: 0) but kept as one token. */
+  --bg: #FFFFFF; --surface: #FFFFFF; --surface-2: #FBF4F3; --head: #F8E4E6; --ink: #261A22; --ink-2: #4D3A46; --muted: #7B6571; --line: #EEDADD; --line-2: #E2C6CC;
+  --primary: #A2305F; --on-primary: #FFFFFF; --primary-ink: #A2305F; --primary-soft: #F6DCE5; --on-sig: #261A22;
+  --ep: #8C5E3C; --ep-soft: #F3E7DD; --low: #9B8590; --low-soft: #F1E9EC; --c4: #C9B3A8; --c5: #6D6558;
+  --ok: #38A06C; --warn: #E0A02A; --bad: #D93B2B; --ok-soft: #E3F2EA; --warn-soft: #FBF0D9; --bad-soft: #FADFDB;
+  --sg-green: #38A06C; --sg-amber: #E0A02A; --sg-red: #D93B2B; --sg-none: #A89AA2; --on-red: #FFFFFF;
+  --font-sans: "DM Sans", ui-sans-serif, -apple-system, "SF Pro Text", "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  /* radius, shadow, hairline */
+  --r-s: 8px; --r-m: 12px; --r-l: 20px; --r-bar: 24px; --r-xl: 28px; --radius: 20px;
+  --ink-rgb: 38, 26, 34; --berry-rgb: 162, 48, 95;
+  --sh-1: 0 1px 2px rgba(var(--ink-rgb), .05), 0 6px 20px rgba(var(--berry-rgb), .07); --sh-2: 0 2px 6px rgba(var(--ink-rgb), .07), 0 12px 32px rgba(var(--berry-rgb), .12); --sh-3: 0 4px 10px rgba(var(--ink-rgb), .08), 0 22px 48px rgba(var(--berry-rgb), .16);
+  --pop: 0 12px 40px rgba(var(--berry-rgb), .14), 0 36px 90px rgba(var(--ink-rgb), .22); --shadow: var(--sh-1);
+  /* material tokens: one shared set. Brand surface = #FAF2F1 (light) / #1E161C (dark). Regular = the bar, Thick = popups, Static = translucent cards with no blur. */
+  --brand-rgb: 250, 242, 241;
+  --reg-a: .56; --reg-blur: 24px; --reg-sat: 140%; --thick-a: .78; --thick-blur: 28px; --static-a: .80; --static-inner-a: .66; --scrim-blur: 6px;
+  --rim-a: rgba(255, 255, 255, .95); --rim-b: rgba(255, 255, 255, .30); --rim-c: rgba(var(--berry-rgb), .14); --hair-out: rgba(var(--berry-rgb), .10); --hl: rgba(255, 255, 255, .85);
+  --head-rgb: 248, 228, 230; --glow-rgb: 162, 48, 95; --spec: rgba(255, 255, 255, .85);
+  --scrim: rgba(var(--ink-rgb), .30); --sel: rgba(162, 48, 95, .20); --win: rgba(155, 133, 144, .16); --dot: #C9A9B6; --ctl: rgba(var(--ink-rgb), .06);
+  /* backlight strength: 0 in light (white page), 1 in dark */
+  --bl: 0; --amoeba-sh: rgba(162, 48, 95, .14);
+  /* quiet palette (light): neutral greys, solid white. Text greys keep 4.5:1; the mid grey is for lines and bars only. */
+  --quiet-ink: #1F1F1F; --quiet-ink2: #4A4A4A; --quiet-muted: #666666; --quiet-line: #E6E6E6; --quiet-tint: #F1F1F1; --quiet-soft: #EDEDED; --quiet-accent: #5A5A5A; --quiet-surface: #FFFFFF; --quiet-since: #F7F7F7; --quiet-bar: #8A8A8A;
+  --quiet-g1: #6E6E6E; --quiet-g2: #9A9A9A; --quiet-g3: #BDBDBD; --panel-since: #FEF9F9; --panel-bg: #FFFFFF;
+  /* the patient card is the lightest layer; its inner blocks are a visible step tinted */
+  --banner-bg: rgba(255, 255, 255, .78); --tile-bg: rgba(var(--head-rgb), .46);
+  /* motion: one rhythm. Micro 220-300, entrances and popups 450-800. */
+  --dur-micro: 260ms; --dur-fade: 220ms; --dur-tab: 260ms; --dur-pill: 380ms; --dur-lift: 300ms; --dur-enter: 600ms; --dur-popup: 420ms; --dur-popup-out: 240ms; --dur-theme: 600ms;
+  --ease-settle: cubic-bezier(.22, 1, .36, 1); --ease-spring: cubic-bezier(.34, 1.3, .64, 1);
+}
+:root[data-theme="dark"] {
+  --bg: #140F13; --surface: #1E161C; --surface-2: #241B21; --head: #2A1B24; --ink: #F6EEF1; --ink-2: #D6C6CE; --muted: #B3A0AA; --line: #34262E; --line-2: #46333D;
+  --primary: #E0709F; --on-primary: #1A0B12; --primary-ink: #E0709F; --primary-soft: #3A2030; --on-sig: #1A0B12;
+  --ep: #D2A67E; --ep-soft: #33261D; --low: #A8949E; --low-soft: #2A2127; --c4: #8A786F; --c5: #B5AE9E;
+  --ok: #56C492; --warn: #EDB655; --bad: #F0604C; --ok-soft: #17301F; --warn-soft: #3A2D12; --bad-soft: #3D1E1B;
+  --sg-green: #56C492; --sg-amber: #EDB655; --sg-red: #F0604C; --sg-none: #75636C; --on-red: #1A0B12;
+  --ink-rgb: 246, 238, 241; --berry-rgb: 224, 112, 159;
+  --sh-1: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 20px rgba(0, 0, 0, .3); --sh-2: 0 2px 6px rgba(0, 0, 0, .4), 0 12px 32px rgba(0, 0, 0, .4); --sh-3: 0 4px 10px rgba(0, 0, 0, .45), 0 22px 48px rgba(0, 0, 0, .5);
+  --pop: 0 12px 40px rgba(0, 0, 0, .5), 0 36px 90px rgba(0, 0, 0, .55); --shadow: var(--sh-1);
+  --brand-rgb: 30, 22, 28; --rim-a: rgba(255, 255, 255, .26); --rim-b: rgba(255, 255, 255, .05); --rim-c: rgba(224, 112, 159, .18); --hair-out: rgba(224, 112, 159, .16); --hl: rgba(255, 255, 255, .09);
+  --head-rgb: 42, 27, 36; --glow-rgb: 224, 112, 159; --spec: rgba(255, 255, 255, .10);
+  --scrim: rgba(0, 0, 0, .40); --sel: rgba(224, 112, 159, .30); --win: rgba(168, 148, 158, .18); --dot: #7A5568; --ctl: rgba(255, 255, 255, .08);
+  --bl: 1; --amoeba-sh: rgba(0, 0, 0, .40);
+  --quiet-ink: #EDEDED; --quiet-ink2: #C9C9C9; --quiet-muted: #9A9A9A; --quiet-line: #2E2E2E; --quiet-tint: #2A2A2A; --quiet-soft: #2E2E2E; --quiet-accent: #BDBDBD; --quiet-surface: #1B1B1B; --quiet-since: #222222; --quiet-bar: #8F8F8F;
+  --quiet-g1: #BDBDBD; --quiet-g2: #8F8F8F; --quiet-g3: #6A6A6A; --panel-since: #231820; --panel-bg: #1E161C;
+  --banner-bg: rgba(48, 35, 44, .88); --tile-bg: rgba(18, 12, 16, .52);
+}
+
+/* ---- page: flat colour and the backlight, a fixed layer behind everything (never an ancestor with a filter), plus a faint pointer light ---- */
+/* the real (colour-state) values under other names, so a quiet component can re-point --ink, --line... to its own animated tokens */
+:root { --r-ink: var(--ink); --r-ink2: var(--ink-2); --r-muted: var(--muted); --r-line: var(--line); --r-tint: var(--surface-2); --r-accent: var(--primary-ink); --r-soft: var(--primary-soft); --r-surface: var(--surface); --r-since: var(--panel-since);
+  --r-fill: rgba(var(--brand-rgb), var(--static-a)); --STATUS_COLOURS_ALWAYS_ON: 1; }
+body { background-color: var(--bg); font-variant-numeric: tabular-nums; color: var(--ink); caret-color: var(--primary); }
+body::before, body::after { content: ""; position: fixed; pointer-events: none; z-index: -1; }
+body::before { inset: 0; background:
+  radial-gradient(62vw 58vh at 6% -4%, rgba(248, 200, 210, calc(.55 * var(--bl))), transparent 70%),
+  radial-gradient(56vw 52vh at 94% 10%, rgba(162, 48, 95, calc(.14 * var(--bl))), transparent 70%),
+  radial-gradient(64vw 52vh at 52% 108%, rgba(250, 215, 195, calc(.45 * var(--bl))), transparent 72%); }
+:root[data-theme="dark"] body::before { background:
+  radial-gradient(60vw 56vh at 90% 4%, rgba(224, 112, 159, .18), transparent 70%),
+  radial-gradient(66vw 58vh at 4% 104%, rgba(90, 40, 70, .35), transparent 72%); }
+body::after { left: 0; top: 0; width: 720px; height: 720px; margin: -360px 0 0 -360px; border-radius: 50%; opacity: 0; will-change: transform;
+  transform: translate3d(var(--px, 50vw), var(--py, 30vh), 0); background: radial-gradient(closest-side, rgba(248, 200, 210, calc(.34 * var(--bl))), transparent); transition: opacity 500ms var(--ease-settle); }
+:root[data-theme="dark"] body::after { background: radial-gradient(closest-side, rgba(224, 112, 159, .12), transparent); }
+html.has-light body::after { opacity: 1; }
+::selection { background: var(--sel); color: var(--ink); }
+a { color: var(--primary-ink); } a:hover { text-decoration: none; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 8px; }
+* { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; } ::-webkit-scrollbar-track { background: transparent; }
+.page { gap: 22px; padding-top: 14px; }
+
+/* ---- the lit edge: a 1px gradient rim, brighter at the top left (light from -45 degrees) and fading toward the bottom right. Used on translucent surfaces. ---- */
+.pband::before, .pb-sec::before, .modal::before, .topbar::before, .tnav::before, .seg::before, .dcard::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 2;
+  background: radial-gradient(var(--glow-r, 190px) circle at var(--mx, 50%) var(--my, 0%), rgba(var(--glow-rgb), var(--glow, 0)), transparent 65%), linear-gradient(135deg, var(--rim-a) 0%, var(--rim-b) 55%, var(--rim-c) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+.pband, .pb-sec, .topbar, .tnav, .seg, .btn, .dcard, .brief { position: relative; } .topbar { position: sticky; } .brief { overflow: visible; }
+
+/* ---- STAGE 1. Content layer: static glass (translucent fill, rim, top highlight, warm shadow; NO backdrop-filter) and solid cards ---- */
+.card, .gtile, .fu-row, .notice, .rules-cta, .split-r { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: var(--sh-1); }
+.card, .gtile, .brief, .fu-row, .notice, .rules-cta, .tile { transition: transform var(--dur-lift) var(--ease-settle), box-shadow var(--dur-lift) var(--ease-settle), border-color var(--dur-lift) var(--ease-settle), background var(--dur-lift) var(--ease-settle); }
+.rules-cta { color: var(--ink); text-decoration: none; } .rules-cta .rc-ic { display: none; }
+.rules-cta .rc-go { display: inline-block; color: var(--primary-ink); transition: transform var(--dur-micro) var(--ease-settle); }
+.fu-row.main { background: var(--surface); border-color: var(--line-2); }
+.notice { border-left: 1px solid var(--line); } .notice .n { background: var(--primary); color: var(--on-primary); }
+.chip { border-radius: var(--r-s); background: var(--surface-2); color: var(--ink-2); padding: 3px 10px; }
+.chip.primary, .chip.bad, .pb-sec .chip { background: var(--primary-soft); color: var(--primary-ink); border-color: transparent; }
+.chip.ep { background: var(--ep-soft); color: var(--ep); }
+.rid { border-radius: 6px; } .rid.G { border-left: 3px solid var(--muted); } .rid.B { border-left: 3px solid var(--dot); }
+.sig { border-radius: var(--r-s); } .sig.red { color: var(--on-red); }
+.vt { border-radius: 999px; transition: background var(--dur-micro) var(--ease-settle), transform var(--dur-micro) var(--ease-settle); }
+.vt.on { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.lanes input, .gfilters input { accent-color: var(--primary); }
+
+/* patient card and its inner blocks: static glass, backlight tint showing through; the one berry hairline sits on its top edge */
+.pband { padding: 24px 28px 26px; gap: 18px 22px; border-radius: var(--r-l); background: var(--banner-bg); border: 1px solid transparent; box-shadow: 0 0 0 1px var(--hair-out), inset 0 1px 0 var(--hl), var(--sh-1); }
+.pband::after { content: ""; position: absolute; left: 28px; right: 28px; top: 0; height: 1px; pointer-events: none; z-index: 3; background: linear-gradient(90deg, transparent, rgba(var(--glow-rgb), .65) 18%, rgba(var(--glow-rgb), .65) 82%, transparent); }
+.avatar { background: var(--primary-soft); border-radius: var(--r-m); box-shadow: 0 0 0 1px var(--hair-out), var(--sh-1); }
+.pb-main h1 { font-family: var(--font-serif); font-weight: 560; font-size: 30px; line-height: 1.12; letter-spacing: -.018em; color: var(--ink); }
+.pb-facts { color: var(--ink-2); gap: 4px 20px; }
+.pb-secs { gap: 16px; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); } /* four across when there is room, wrapping to fewer when the page is narrower (the rail takes 196px) */
+.pb-sec { background: var(--tile-bg); border: 1px solid var(--line); border-radius: var(--r-m); padding: 16px 18px 17px; gap: 10px; box-shadow: 0 0 0 1px var(--hair-out), inset 0 1px 0 var(--hl); }
+.pb-tags { gap: 8px; } .pb-med { padding: 8px 0; border-bottom-color: var(--line); } .pb-med .num { font-weight: 650; }
+.pb-allergy { background: var(--primary-soft); border: 0; border-radius: var(--r-s); color: var(--ink); } .pb-allergy span { color: var(--ink-2); }
+.adh { background: var(--primary-soft); } .adh i { background: var(--primary); transform-origin: left center; }
+
+/* the four boxes (Profile, Last visit, Since then, Concern today): separate solid boxes with equal heights. The first rows show at rest; the rest live in a details blob
+   that splits off below on hover (see the AMOEBA block). Shape, ripple, content and blob content are separate layers; text is never inside a filtered layer. */
+.briefs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; align-items: stretch; background: none; border: 0; border-radius: 0; box-shadow: none; overflow: visible; font-family: var(--font-sans); }
+.brief { --gap: 20px; position: relative; display: block; min-width: 0; padding: 0; background: none; border: 0; border-left: 0; border-radius: 16px; box-shadow: none; font-family: var(--font-sans); outline: none; transform: none; cursor: default; }
+.brief::before { display: none; } .brief:hover { transform: none; box-shadow: none; } .brief + .brief { border-left: 0; }
+.brief:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.brief .bx { position: relative; z-index: 2; padding: 0 0 12px; }
+.brief .bh { display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; gap: 3px; height: 82px; min-height: 0; padding: 22px 52px 0 26px; background: none; border-bottom: 1px solid var(--line); border-radius: 0; }
+.brief .bh span { font-family: var(--font-serif); font-weight: 520; font-size: 17px; line-height: 1.2; letter-spacing: -.01em; color: var(--ink); }
+.brief .bh small { display: block; min-height: 16px; font-family: var(--font-sans); font-size: 12px; font-weight: 400; line-height: 16px; letter-spacing: 0; color: var(--ink-2); }
+.brief ul { list-style: none; margin: 0; padding: 4px 26px 4px; display: block; }
+.brief li { position: static; display: block; padding: 10px 0; font-size: 14px; line-height: 1.5; color: var(--ink); border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.brief li:first-child { border-top: 0; } .brief li::before { display: none; }
+.brief li b { display: block; margin-bottom: 1px; font-size: 12px; font-weight: 500; line-height: 1.4; color: var(--ink-2); }
+@media (max-width: 1100px) { .briefs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 680px) { .briefs { grid-template-columns: 1fr; } }
+.dom-intro h2 { font-family: var(--font-serif); font-weight: 560; font-size: 25px; letter-spacing: -.016em; color: var(--ink); margin-bottom: 6px; }
+.dom-intro .about summary { color: var(--ink-2); }
+
+/* domain cards: static glass, status dot beside an ink title, the "Open" label only on hover in the top right */
+.dcard { padding: 26px 28px 26px; gap: 14px; background: rgba(var(--brand-rgb), var(--static-a)); border: 1px solid transparent; border-left: 1px solid transparent; border-radius: var(--r-l); box-shadow: 0 0 0 1px var(--hair-out), inset 0 1px 0 var(--hl), var(--sh-1); color: var(--ink); text-decoration: none; }
+.dcard .dc-name { position: relative; display: inline-flex; align-items: center; gap: 10px; letter-spacing: -.012em; color: var(--ink); font-size: 16.5px; }
+.dcard .dc-name::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--accent, var(--sg-none)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, var(--sg-none)) 22%, transparent); }
+.dc-facts { border-top: 1px solid var(--line); padding-top: 12px; gap: 6px; } .dc-facts .fv { font-weight: 650; letter-spacing: -.01em; text-align: right; } .dc-facts .fl { color: var(--ink-2); }
+.dc-go { position: absolute; top: 18px; right: 20px; z-index: 3; font-size: 12px; color: var(--primary-ink); font-weight: 650; display: inline-block; opacity: 0; pointer-events: none; }
+.dgrid8 { gap: 18px; }
+.dcard > *:not(.dc-go) { position: relative; z-index: 1; }
+
+/* tiles and values */
+.tile { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-m); padding: 14px 16px; }
+.tile.on, .split .tile.on { border-color: var(--primary); background: color-mix(in srgb, var(--primary-soft) 42%, var(--surface)); box-shadow: 0 0 0 1px var(--primary); }
+.tv { font-size: 24px; font-weight: 700; letter-spacing: -.022em; color: var(--ink); } .tv small { font-weight: 600; color: var(--muted); }
+.tk { font-size: 12.5px; font-weight: 600; letter-spacing: -.003em; color: var(--ink-2); }
+.pb-h, .pk, .sh { font-size: 11px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.spark .ln, .spark .dpt.solid, .spark .dpt.hollow { stroke: var(--primary-ink); } .spark .goal { stroke: var(--muted); } .spark .lastdot { stroke: var(--ink); }
+.tbl th { color: var(--ink-2); }
+.legend i.band { background: var(--win); } .legend i.zone { background: linear-gradient(90deg, rgba(56, 160, 108, .45) 33%, rgba(224, 160, 42, .55) 33% 66%, rgba(217, 59, 43, .5) 66%); }
+.footer { color: var(--muted); }
+.dhead, .dhead.green, .dhead.amber, .dhead.red { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: var(--sh-1); padding: 18px 22px; }
+.split-r { padding: 18px 20px; } .split { gap: 20px; }
+.modal .dh-main h1 { font-family: var(--font-serif); font-weight: 560; font-size: 26px; letter-spacing: -.016em; }
+
+/* the top bar, plain version (STAGE 2 turns it into glass) */
+.topbar { top: 12px; z-index: 30; margin: 12px 16px 0; width: auto; max-width: none; padding: 10px 12px 10px 16px; border-radius: var(--r-bar); gap: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-1); }
+.brand { letter-spacing: -.012em; color: var(--ink); } .brand-mark { background: var(--primary); border-radius: var(--r-s); } .brand-mark svg { stroke: var(--on-primary); } .top-sp { flex: 1; }
+.btn { display: inline-flex; align-items: center; border-radius: var(--r-m); padding: 6px 14px; color: var(--ink); background: var(--ctl); border: 0; box-shadow: none; }
+.topbar .chip { background: var(--ctl); border-radius: var(--r-m); padding: 5px 12px; color: var(--ink-2); }
+.tnav, .seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--r-m); width: fit-content; background: var(--ctl); border: 0; }
+.seg { align-self: flex-start; }
+.tnav a, .seg a { position: relative; z-index: 1; padding: 6px 15px; margin: 0; border: 0; border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.tnav a:hover, .seg a:hover { background: transparent; color: var(--ink); text-decoration: none; }
+.tnav a.on, .seg a.on, .tnav a.on:hover, .seg a.on:hover { background: var(--primary); color: var(--on-primary); border: 0; }
+.has-ind a.on, .has-ind a.on:hover { background: transparent; }
+.ind { position: absolute; top: 3px; bottom: 3px; left: 0; width: 0; border-radius: 9px; background: var(--primary); z-index: 0; pointer-events: none; will-change: transform; }
+.mclose { background: var(--surface); border: 1px solid var(--line); color: var(--ink-2); }
+.modal-back { background: transparent; }
+.modal { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--pop); } .mbody { border-radius: var(--r-xl); padding: 26px 30px 30px; gap: 18px; }
+.gtip { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); box-shadow: var(--sh-3); color: var(--ink); }
+
+/* popup: every tab keeps the same popup size, so the tab bar stays put; the second tab scrolls inside the popup */
+.modal.fit .mbody > .pscroll { flex: 1 1 0; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.pscroll .panel.narrow { max-width: none; gap: 14px; }
+.ep-lead { margin: 0 0 2px; font-size: 13px; color: var(--ink-2); max-width: 80ch; }
+.ep { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: var(--sh-1); overflow: hidden; }
+.ep.open { border-color: var(--line-2); }
+.ep-h { padding: 16px 22px 14px; background: rgba(var(--head-rgb), .55); border-bottom: 1px solid var(--line); }
+.ep-t { font-family: var(--font-serif); font-weight: 600; font-size: 19px; letter-spacing: -.012em; color: var(--ink); }
+.ep-s { margin-top: 2px; font-size: 12px; color: var(--ink-2); }
+.ep-body { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 8px 28px; padding: 16px 22px 18px; }
+.ep-body .sh { margin-bottom: 8px; }
+.ep-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.ep-list li { display: grid; grid-template-columns: 54px 92px minmax(0, 1fr); gap: 10px; align-items: baseline; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+.ep-d { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; } .ep-k { font-size: 11px; font-weight: 650; letter-spacing: .04em; color: var(--primary-ink); } .ep-x { color: var(--ink); }
+.ep-list li.ep-more { display: block; color: var(--muted); font-size: 12px; }
+.ep-c { font-size: 13px; line-height: 1.55; color: var(--ink-2); } .ep-c p { margin: 0 0 8px; } .ep-c b { color: var(--ink); } .ep-c .muted { color: var(--muted); }
+@media (max-width: 900px) { .ep-body { grid-template-columns: 1fr; } .ep-list li { grid-template-columns: 54px 1fr; } .ep-k { display: none; } }
+
+/* top bar: brand, the patient (photo, name, facts) and the theme button; the page tabs sit in a vertical rail on the left */
+.topbar { padding: 10px 16px 10px 18px; gap: 22px; }
+.tb-pt { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.tb-av { flex: none; width: 48px; height: 48px; border-radius: var(--r-m); overflow: hidden; background: var(--primary-soft); box-shadow: 0 0 0 1px var(--hair-out), var(--sh-1); } .tb-av img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.tb-id { min-width: 0; }
+.tb-name { margin: 0; font-family: var(--font-serif); font-weight: 560; font-size: 22px; line-height: 1.1; letter-spacing: -.016em; color: var(--ink); }
+.tb-facts { display: flex; flex-wrap: wrap; gap: 2px 16px; margin-top: 3px; font-size: 12.5px; line-height: 1.3; color: var(--ink-2); }
+.dv-body { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: 0 8px; align-items: start; max-width: 1560px; margin: 0 auto; padding: 0 16px 0 28px; }
+.dv-side { position: sticky; top: calc(var(--bar-b, 92px) + 18px); padding-top: 0; }
+.dv-body .page { max-width: 1280px; width: 100%; margin: 0; padding: 14px 12px 60px 20px; }
+.tnav.vert { display: flex; flex-direction: column; align-items: stretch; width: 100%; padding: 6px; border-radius: 16px; gap: 2px; margin-top: 14px; }
+.tnav.vert a { display: block; padding: 10px 14px; border-radius: 10px; text-align: left; white-space: nowrap; }
+.tnav.vert .ind { top: 0; bottom: auto; left: 6px; right: 6px; width: auto; border-radius: 10px; }
+.pband { display: block; padding: 22px 28px 26px; }
+@media (max-width: 900px) { .dv-body { display: block; padding: 0 16px; } .dv-side { position: static; } .tnav.vert { flex-direction: row; overflow-x: auto; margin-top: 12px; width: fit-content; max-width: 100%; } .tnav.vert .ind { top: 3px; bottom: 3px; left: 0; right: auto; border-radius: 9px; } .dv-body .page { padding: 14px 0 60px; } }
+
+/* ---- STAGE 2. The floating control layer: the only real glass (backdrop blur). "Regular" for the bar, "Thick" for popups, over a scrim. ---- */
+.topbar { background: rgba(var(--brand-rgb), var(--reg-a)); -webkit-backdrop-filter: blur(var(--reg-blur)) saturate(var(--reg-sat)); backdrop-filter: blur(var(--reg-blur)) saturate(var(--reg-sat));
+  border: 1px solid transparent; box-shadow: 0 0 0 1px var(--hair-out), inset 0 1px 0 var(--hl), var(--sh-2); }
+/* controls inside the bar are subtle fills, not nested glass; the active tab is tinted glass (berry at 84 percent, rim and key light) and the only accent in the bar */
+.tnav a.on, .seg a.on, .tnav a.on:hover, .seg a.on:hover { background: transparent; color: var(--on-primary); }
+.ind { background: linear-gradient(rgba(var(--berry-rgb), .84), rgba(var(--berry-rgb), .84)) padding-box, linear-gradient(135deg, rgba(255, 255, 255, .8), rgba(255, 255, 255, .08) 62%) border-box; border: 1px solid transparent;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 2px 8px rgba(var(--berry-rgb), .30); }
+/* popups: Thick tier over a scrim that dims the page about 30 percent and blurs it about 6px */
+.modal-back::before { content: ""; position: absolute; inset: 0; background: var(--scrim); -webkit-backdrop-filter: blur(var(--scrim-blur)); backdrop-filter: blur(var(--scrim-blur)); pointer-events: none; }
+.modal { background: rgba(var(--brand-rgb), var(--thick-a)); -webkit-backdrop-filter: blur(var(--thick-blur)) saturate(var(--reg-sat)); backdrop-filter: blur(var(--thick-blur)) saturate(var(--reg-sat)); border: 1px solid transparent; box-shadow: 0 0 0 1px var(--hair-out), inset 0 1px 0 var(--hl), var(--pop); }
+.modal { --muted: #624D5A; } /* secondary text sits directly on the glass in the Rules and Events tabs; measured 3.8:1 with the page value, so the popup uses a slightly deeper one */
+:root[data-theme="dark"] .modal { --muted: #B3A0AA; }
+.mclose { background: var(--ctl); border: 0; color: var(--ink-2); }
+.modal .seg { background: var(--ctl); }
+/* the scroll edge: content fades into the page colour before it reaches the bar. The mask is on the outer element. */
+.edge-fade { position: fixed; left: 0; right: 0; top: var(--bar-b, 76px); height: 44px; z-index: 20; pointer-events: none; opacity: 0; transition: opacity var(--dur-micro) var(--ease-settle); -webkit-mask-image: linear-gradient(#000 30%, transparent); mask-image: linear-gradient(#000 30%, transparent); }
+.edge-fade i { display: block; width: 100%; height: 100%; background: linear-gradient(var(--bg), color-mix(in srgb, var(--bg) 0%, transparent)); } /* a blur here changed no pixel (measured: max difference 0 of 255), so it is a plain fade */
+html.scrolled .edge-fade { opacity: 1; } body.noscroll .edge-fade { display: none; }
+
+/* ---- STAGE 3. Interaction: hover, tilt, glow, press illumination, magnetic buttons ---- */
+.card:hover, .gtile:hover, .fu-row:hover, .notice:hover, .rules-cta:hover { transform: translateY(-2px); box-shadow: var(--sh-2); border-color: var(--line-2); }
+.rules-cta:hover .rc-go { transform: translateX(3px); } .rules-cta:active { transform: scale(.985); }
+.tile[data-dom]:hover { border-color: var(--line-2); box-shadow: var(--sh-1); }
+.dcard { transform: perspective(900px) translate3d(0, var(--ty, 0px), 0) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--sc, 1)); transform-style: preserve-3d; will-change: transform;
+  transition: transform var(--dur-lift) var(--ease-spring), box-shadow var(--dur-lift) var(--ease-settle), --glow var(--dur-micro) var(--ease-settle), opacity var(--dur-enter) var(--ease-settle); }
+.dcard::after { z-index: 0; content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), var(--spec), transparent 70%); transition: opacity var(--dur-micro) var(--ease-settle); }
+.dcard:hover { --ty: -4px; --glow: .6; border-color: transparent; transform: perspective(900px) translate3d(0, var(--ty, 0px), 0) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--sc, 1)); box-shadow: 0 0 0 1px var(--hair-out), inset 0 1px 0 var(--hl), var(--sh-3); text-decoration: none; }
+.dcard:hover::after { opacity: 1; } .dcard:active { --sc: .985; }
+.dcard.tilting { transition: transform 90ms linear, box-shadow var(--dur-lift) var(--ease-settle), --glow var(--dur-micro) var(--ease-settle); }
+.dcard .dc-name::after { content: ""; position: absolute; left: 0; top: 50%; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%; background: var(--accent, var(--sg-none)); opacity: 0; pointer-events: none; }
+.dcard:hover .dc-name::after { animation: dv-ring 900ms var(--ease-settle) 1; }
+.dc-go { transform: translateY(-3px); transition: opacity var(--dur-micro) var(--ease-settle), transform var(--dur-micro) var(--ease-settle); }
+.dcard:hover .dc-go, .dcard:focus-visible .dc-go { opacity: 1; transform: none; } .dcard:active .dc-go { transform: scale(.97); }
+@media (hover: none) { .dc-go { opacity: 1; transform: none; } }
+.dc-go .chev-r { display: inline-block; transition: transform var(--dur-micro) var(--ease-settle); } .dcard:hover .chev-r { transform: translateX(3px); }
+.dcard.rv-wait { opacity: 0; --ty: 18px; } .dcard.rv-go { transition: transform var(--dur-enter) var(--ease-settle), opacity var(--dur-enter) var(--ease-settle), box-shadow var(--dur-lift) var(--ease-settle); }
+/* controls: press state, press illumination (a soft glow from the contact point, set by one delegated listener), magnetic pull for Print and the theme button */
+.btn { transform: translate3d(var(--bx, 0px), var(--by, 0px), 0) scale(var(--sc, 1)); transition: transform var(--dur-micro) var(--ease-settle), background var(--dur-micro) var(--ease-settle); }
+.btn:hover { background: rgba(var(--ink-rgb), .10); } .btn:active { --sc: .97; }
+.tnav a, .seg a { transition: color var(--dur-micro) var(--ease-settle), transform var(--dur-micro) var(--ease-settle); }
+.tnav a:active, .seg a:active, .vt:active, .mclose:active { transform: scale(.97); }
+.btn, .tnav a, .seg a, .vt, .mclose { overflow: hidden; }
+.btn::after, .tnav a::after, .seg a::after, .vt::after, .mclose::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transform: scale(.4); transform-origin: var(--press-x, 50%) var(--press-y, 50%);
+  background: radial-gradient(circle at var(--press-x, 50%) var(--press-y, 50%), rgba(255, 255, 255, .55), transparent 62%); transition: opacity var(--dur-micro) var(--ease-settle), transform 420ms var(--ease-settle); }
+.btn:active::after, .tnav a:active::after, .seg a:active::after, .vt:active::after, .mclose:active::after { opacity: 1; transform: scale(1.6); transition-duration: 120ms, 300ms; }
+.btn, .vt { position: relative; } .mclose { position: absolute; top: 14px; right: 14px; }
+
+/* the light / dark switch (bottom right): the current mode's icon at rest, both on hover or focus */
+.themefab { position: fixed; right: 18px; bottom: 18px; z-index: 45; display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: var(--surface); box-shadow: 0 0 0 1px var(--hair-out), var(--sh-2); }
+.themefab button { appearance: none; border: 0; background: transparent; width: 34px; height: 34px; padding: 0; border-radius: 50%; display: grid; place-items: center; cursor: pointer; overflow: hidden; max-width: 34px; opacity: 1; transition: max-width var(--dur-lift) var(--ease-settle), opacity var(--dur-micro) var(--ease-settle), background var(--dur-micro) var(--ease-settle), transform var(--dur-micro) var(--ease-settle); }
+.themefab button[aria-pressed="false"] { max-width: 0; opacity: 0; pointer-events: none; }
+.themefab:is(:hover, :focus-within) button[aria-pressed="false"] { max-width: 34px; opacity: .85; pointer-events: auto; }
+.themefab button:hover { background: var(--ctl); transform: scale(1.08); } .themefab button:active { transform: scale(.94); }
+@media (prefers-reduced-motion: reduce) { .themefab button { transition: none; } .themefab button:hover, .themefab button:active { transform: none; } }
+@media (hover: none) { .themefab button[aria-pressed="false"] { max-width: 34px; opacity: .85; pointer-events: auto; } }
+@media print { .themefab { display: none !important; } }
+
+/* ---- QUIET BY DEFAULT, COLOUR ON ATTENTION. The quiet panel columns, Domains cards, the All rules strip and the All graphs cards rest in solid greys and take their real
+   colours on hover or focus. Done by switching registered colour tokens inside each component (never filter: grayscale()), so backdrop-filter above is not affected.
+   Only where a pointer can hover and the user has not asked for more contrast; touch, print and prefers-contrast show everything in colour. Status dots stay in colour
+   (the one switch for that is STATUS_COLOURS_ALWAYS_ON in main.js). ---- */
+:root { --qi: var(--r-ink); --qi2: var(--r-ink2); --qm: var(--r-muted); --ql: var(--r-line); --qt: var(--r-tint); --qa: var(--r-accent); --qs: var(--r-soft); --qsur: var(--r-surface); --qsince: var(--r-since); --qfill: var(--r-fill);
+  --q-leave: --qi 500ms var(--ease-settle), --qi2 500ms var(--ease-settle), --qm 500ms var(--ease-settle), --ql 500ms var(--ease-settle), --qt 500ms var(--ease-settle), --qa 500ms var(--ease-settle), --qs 500ms var(--ease-settle), --qsur 500ms var(--ease-settle), --qsince 500ms var(--ease-settle), --qfill 500ms var(--ease-settle); --q-reveal: --qi 350ms var(--ease-settle), --qi2 350ms var(--ease-settle), --qm 350ms var(--ease-settle), --ql 350ms var(--ease-settle), --qt 350ms var(--ease-settle), --qa 350ms var(--ease-settle), --qs 350ms var(--ease-settle), --qsur 350ms var(--ease-settle), --qsince 350ms var(--ease-settle), --qfill 350ms var(--ease-settle); }
+@media screen and (hover: hover) and (pointer: fine) and (prefers-contrast: no-preference) {
+  .dcard, .brief, .rules-cta, .gtile { --ink: var(--qi); --ink-2: var(--qi2); --muted: var(--qm); --line: var(--ql); --line-2: var(--ql); --surface-2: var(--qt); --primary-ink: var(--qa); --primary-soft: var(--qs); --surface: var(--qsur);
+    --qi: var(--quiet-ink); --qi2: var(--quiet-ink2); --qm: var(--quiet-muted); --ql: var(--quiet-line); --qt: var(--quiet-tint); --qa: var(--quiet-accent); --qs: var(--quiet-soft); --qsur: var(--quiet-surface); --qsince: var(--quiet-since); --qfill: var(--quiet-surface); }
+  .dcard:is(:hover, :focus-within, :focus-visible), .brief:is(:hover, :focus-within), .rules-cta:is(:hover, :focus-within, :focus-visible), .gtile:is(:hover, :focus-within) {
+    --qi: var(--r-ink); --qi2: var(--r-ink2); --qm: var(--r-muted); --ql: var(--r-line); --qt: var(--r-tint); --qa: var(--r-accent); --qs: var(--r-soft); --qsur: var(--r-surface); --qsince: var(--r-since); --qfill: var(--r-fill); }
+  /* Domains cards: solid and neutral at rest (no tint from the backlight, no rim), the static glass look on reveal */
+  .dcard { background: var(--qfill); transition: transform var(--dur-lift) var(--ease-spring), box-shadow var(--dur-lift) var(--ease-settle), border-color 500ms var(--ease-settle), --glow var(--dur-micro) var(--ease-settle), opacity var(--dur-enter) var(--ease-settle), var(--q-leave); }
+  .dcard:not(:is(:hover, :focus-within, :focus-visible)) { border-color: var(--ql); box-shadow: 0 1px 2px rgba(0, 0, 0, .05); }
+  .dcard:is(:hover, :focus-within, :focus-visible) { transition: transform var(--dur-lift) var(--ease-spring), box-shadow var(--dur-lift) var(--ease-settle), border-color 350ms var(--ease-settle), --glow var(--dur-micro) var(--ease-settle), opacity var(--dur-enter) var(--ease-settle), var(--q-reveal); }
+  .dcard.tilting { transition: transform 90ms linear, box-shadow var(--dur-lift) var(--ease-settle), border-color 350ms var(--ease-settle), --glow var(--dur-micro) var(--ease-settle), var(--q-reveal); }
+  .dcard::before { opacity: 0; transition: opacity 500ms var(--ease-settle); } .dcard:is(:hover, :focus-within, :focus-visible)::before { opacity: 1; transition-duration: 350ms; }
+  .dcard .rid.G, .dcard .rid.B { border-left-color: var(--muted); }
+  /* the four boxes: per-box swap (the shapes layer takes --qsur) */
+  .brief { transition: var(--q-leave); }
+  .brief:is(:hover, :focus-within) { transition: var(--q-reveal); }
+  /* the All rules strip and the All graphs cards */
+  .rules-cta, .gtile { background: var(--qsur); transition: transform var(--dur-lift) var(--ease-settle), box-shadow var(--dur-lift) var(--ease-settle), border-color 500ms var(--ease-settle), var(--q-leave); }
+  .rules-cta:is(:hover, :focus-within, :focus-visible), .gtile:is(:hover, :focus-within) { transition: transform var(--dur-lift) var(--ease-settle), box-shadow var(--dur-lift) var(--ease-settle), border-color 350ms var(--ease-settle), var(--q-reveal); }
+  .rules-cta .rc-go { color: var(--primary-ink); }
+}
+html.status-quiet .dcard:not(:is(:hover, :focus-within)) .dc-name::before { background: var(--quiet-bar); box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { :root { --q-leave: --qi 1ms linear, --qi2 1ms linear, --qm 1ms linear, --ql 1ms linear, --qt 1ms linear, --qa 1ms linear, --qs 1ms linear, --qsur 1ms linear, --qsince 1ms linear, --qfill 1ms linear; --q-reveal: --qi 1ms linear, --qi2 1ms linear, --qm 1ms linear, --ql 1ms linear, --qt 1ms linear, --qa 1ms linear, --qs 1ms linear, --qsur 1ms linear, --qsince 1ms linear, --qfill 1ms linear; } }
+
+/* ---- AMOEBA: ripple, goo split and details blob for the four boxes. Layers per box: .shapes (box shape and blob shape, the only filtered layer), .rp (ripple), .bx (box content), .bc (blob content). ---- */
+.brief .shapes { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.brief .sh-box { position: absolute; inset: 0; border-radius: 16px; background: var(--qsur); box-shadow: 0 6px 14px var(--amoeba-sh); transition: box-shadow 160ms var(--ease-settle); }
+.brief .sh-blob { position: absolute; left: 50%; margin-left: -22px; top: calc(var(--boxh, 190px) - 52px); width: 44px; height: 44px; border-radius: 22px; background: var(--qsur); box-shadow: 0 0 0 1px var(--line), 0 6px 14px var(--amoeba-sh); opacity: 0; transition: box-shadow 160ms var(--ease-settle); }
+.brief.blob-on .sh-blob { opacity: 1; }
+.brief .hair { position: absolute; inset: 0; z-index: 1; border: 1px solid var(--line); border-radius: 16px; pointer-events: none; } /* the box hairline sits outside the filtered layer, so it never changes */
+.brief .rp { position: absolute; inset: 0; z-index: 1; border-radius: 16px; overflow: hidden; pointer-events: none; }
+.brief .rp i { position: absolute; border-radius: 50%; border: 1.5px solid rgba(var(--berry-rgb), .35); pointer-events: none; }
+.brief .rp i:first-child { background: rgba(var(--berry-rgb), .05); }
+.brief .chev { position: absolute; top: 24px; right: 22px; width: 14px; height: 14px; z-index: 2; color: var(--muted); pointer-events: none; transition: transform 300ms var(--ease-settle); }
+.brief.is-open .chev { transform: rotate(180deg); }
+/* the blob content: always in the DOM and the accessibility tree (opacity, never display:none), so every row is read once, in order */
+.brief .bc { position: absolute; left: 0; top: calc(var(--boxh, 190px) + var(--gap)); width: 100%; z-index: 3; padding: 6px 0 12px; max-height: 60vh; overflow-y: auto; opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease-settle); }
+.brief.content-on .bc { opacity: 1; pointer-events: auto; transition-duration: 300ms; }
+.brief .bridge { position: absolute; left: 0; right: 0; top: 100%; height: var(--gap); pointer-events: none; }
+.brief.blob-on .bridge { pointer-events: auto; }
+.brief.blob-on { z-index: 10; }
+/* open: a droplet buds downward and pinches off, then expands into the blob (about 900 ms); close: shrinks back and merges (about 450 ms) */
+.brief.is-open .sh-blob { left: 0; margin-left: 0; top: calc(var(--boxh, 190px) + var(--gap)); width: 100%; height: var(--bh, 160px); border-radius: 16px;
+  transition: top .55s cubic-bezier(.3, .9, .3, 1), left .6s var(--ease-settle) .3s, margin-left .6s var(--ease-settle) .3s, width .6s var(--ease-settle) .3s, height .6s var(--ease-settle) .3s, border-radius .6s ease .3s, box-shadow 160ms var(--ease-settle); }
+.brief:not(.is-open) .sh-blob { transition: left .35s ease, margin-left .35s ease, width .35s ease, height .35s ease, border-radius .35s ease, top .45s ease .15s, box-shadow 160ms var(--ease-settle); }
+/* the goo filter exists only while the shapes move; it is removed about 100 ms after the last transition, and the settled shapes are plain crisp boxes */
+.brief.morphing .shapes { filter: url(#dv-goo) drop-shadow(0 6px 14px var(--amoeba-sh)); }
+.brief.morphing .sh-box { box-shadow: 0 0 0 transparent; } .brief.morphing .sh-blob { box-shadow: 0 0 0 0 transparent, 0 0 0 transparent; }
+/* phase 3: after a short hold the two boxes join back into ONE big box (the blob rises and merges, the box bottom and blob top corners square off), and the shapes then swap for a single big box */
+.brief .hair { transition: height .3s var(--ease-settle); }
+.brief.is-open.is-merged .sh-blob { top: var(--boxh, 190px); border-radius: 0 0 16px 16px; transition: top .45s var(--ease-settle), border-radius .3s ease; }
+.brief.is-merged .sh-box { border-radius: 16px 16px 0 0; transition: border-radius .3s ease; }
+.brief.is-merged .bc { top: var(--boxh, 190px); transition: opacity 300ms var(--ease-settle), top .45s var(--ease-settle); }
+.brief.is-merged .hair { height: calc(var(--boxh, 190px) + var(--bh, 160px)); transition: height .45s var(--ease-settle); }
+.brief.is-merged .bridge { pointer-events: none; }
+.brief.is-merged .bc ul, .brief.settled .bc ul { margin: 0 26px; padding: 4px 0 8px; border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.brief.settled .sh-box { bottom: calc(0px - var(--bh, 160px)); border-radius: 16px; transition: none; box-shadow: 0 6px 14px var(--amoeba-sh); }
+.brief.settled .sh-blob { opacity: 0; transition: none; }
+.brief.settled .hair { transition: none; }
+
+/* ---- STAGE 4. Motion: keyframes, the one-time page-load choreography, page and popup transitions, theme reveal ---- */
+@keyframes dv-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dv-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes dv-drop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@keyframes dv-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes dv-rise-blur { from { opacity: 0; transform: translateY(16px); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes dv-scale { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes dv-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes dv-ring { from { opacity: .5; transform: scale(1); } to { opacity: 0; transform: scale(2.8); } }
+@keyframes dv-pop-in { from { opacity: 0; transform: translateY(12px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes dv-pop-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(6px) scale(.975); } }
+@keyframes dv-scrim-in { from { -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); opacity: 0; } to { -webkit-backdrop-filter: blur(var(--scrim-blur)); backdrop-filter: blur(var(--scrim-blur)); opacity: 1; } }
+@keyframes dv-scrim-out { from { -webkit-backdrop-filter: blur(var(--scrim-blur)); backdrop-filter: blur(var(--scrim-blur)); opacity: 1; } to { -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); opacity: 0; } }
+@keyframes dv-swap { from { opacity: 0; transform: translateY(8px); filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
+
+/* page load, once per session (html.dv-enter is set for the first 2 s only). Every animation uses "backwards" fill, so the final state is the real state. */
+.dv-enter body::before { animation: dv-fade 400ms var(--ease-settle) backwards; }
+.dv-enter .topbar { animation: dv-drop 500ms var(--ease-settle) backwards; }
+.dv-enter .pband { animation: dv-rise-blur 700ms var(--ease-settle) 120ms backwards; }
+.dv-enter .tb-av { animation: dv-scale 600ms var(--ease-settle) 300ms backwards; }
+.dv-enter .pb-sec:nth-child(1) { animation: dv-rise 500ms var(--ease-settle) 420ms backwards; } .dv-enter .pb-sec:nth-child(2) { animation: dv-rise 500ms var(--ease-settle) 500ms backwards; }
+.dv-enter .pb-sec:nth-child(3) { animation: dv-rise 500ms var(--ease-settle) 580ms backwards; } .dv-enter .pb-sec:nth-child(4) { animation: dv-rise 500ms var(--ease-settle) 660ms backwards; }
+.dv-enter .pb-tags .chip { animation: dv-fade 400ms var(--ease-settle) backwards; } .dv-enter .pb-tags .chip:nth-child(1) { animation-delay: 550ms; } .dv-enter .pb-tags .chip:nth-child(2) { animation-delay: 580ms; } .dv-enter .pb-tags .chip:nth-child(3) { animation-delay: 610ms; } .dv-enter .pb-tags .chip:nth-child(4) { animation-delay: 640ms; } .dv-enter .pb-tags .chip:nth-child(5) { animation-delay: 670ms; } .dv-enter .pb-tags .chip:nth-child(6) { animation-delay: 700ms; } .dv-enter .pb-tags .chip:nth-child(7) { animation-delay: 730ms; } .dv-enter .pb-tags .chip:nth-child(8) { animation-delay: 760ms; } 
+.dv-enter .brief { animation: dv-rise 560ms var(--ease-settle) backwards; }
+.dv-enter .brief:nth-child(1) { animation-delay: 780ms; } .dv-enter .brief:nth-child(2) { animation-delay: 870ms; } .dv-enter .brief:nth-child(3) { animation-delay: 960ms; } .dv-enter .brief:nth-child(4) { animation-delay: 1050ms; }
+.dv-enter .adh i { animation: dv-fill 900ms var(--ease-settle) 900ms backwards; }
+/* page switch: cross-fade with an 8 px slide and a light blur-in */
+.dv-swap > * { animation: dv-swap var(--dur-tab) var(--ease-settle) backwards; }
+/* popup: opens from the clicked card; the scrim fades and blurs the page; content staggers in; tab switches only cross-fade */
+.modal-back::before { animation: dv-scrim-in 300ms var(--ease-settle) backwards; }
+.modal-back { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.modal { animation: dv-pop-in var(--dur-popup) var(--ease-settle) backwards; }
+.modal-back:not(.swap) .mbody > .dhead { animation: dv-rise 460ms var(--ease-settle) 80ms backwards; } .modal-back:not(.swap) .mbody > .seg { animation: dv-rise 460ms var(--ease-settle) 130ms backwards; }
+.modal-back:not(.swap) .mbody > :not(.dhead):not(.seg) { animation: dv-rise 500ms var(--ease-settle) 180ms backwards; }
+.modal-back.swap::before, .modal-back.swap .modal { animation: none; }
+.modal-back.swap .mbody > :not(.dhead):not(.seg) { animation: dv-swap 220ms var(--ease-settle) backwards; }
+.modal-back.closing::before { animation: dv-scrim-out var(--dur-popup-out) var(--ease-settle) forwards; }
+.modal-back.closing .modal { animation: dv-pop-out var(--dur-popup-out) var(--ease-settle) forwards; } .modal-back.closing .mbody > * { animation: none; }
+/* theme toggle: circular reveal from the button (View Transitions API), a plain cross-fade elsewhere */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-old(root) { z-index: 1; } ::view-transition-new(root) { z-index: 2; }
+html.theme-fade, html.theme-fade * { transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease, box-shadow 300ms ease !important; }
+
+/* ---- fallbacks: solid (about 92 percent opaque, no blur) where backdrop-filter is missing or the user asks for less transparency or more contrast ---- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .topbar, .modal { background: color-mix(in srgb, var(--surface) 92%, transparent); }
+  .modal-back::before { background: color-mix(in srgb, var(--bg) 70%, #000); }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  .topbar, .modal { background: color-mix(in srgb, var(--surface) 94%, transparent); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .modal-back::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .modal-back::before { background: color-mix(in srgb, var(--bg) 70%, #000); }
+  .pband, .pb-sec, .dcard { background: color-mix(in srgb, var(--surface) 94%, transparent); }
+}
+/* reduced motion: the static glass and backlight stay; no tilt, magnetic pull, light, slide, scale or blur animation; short opacity-only changes */
+@media (prefers-reduced-motion: reduce) {
+  .dcard, .dcard:hover, .dcard.tilting, .card:hover, .gtile:hover, .brief:hover, .fu-row:hover, .notice:hover, .rules-cta:hover, .btn, .btn:active { transform: none; }
+  .dcard::after, body::after, .dcard .dc-name::after { display: none; }
+  .btn::after, .tnav a::after, .seg a::after, .vt::after, .mclose::after { display: none; }
+  .dcard, .brief, .card, .tile, .btn, .tnav a, .seg a, .vt, .dc-go, .chev-r, .rc-go { transition-property: opacity, box-shadow, border-color, background-color, color; transition-duration: 120ms; transition-timing-function: linear; }
+  .dcard:hover .chev-r, .rules-cta:hover .rc-go { transform: none; } .dc-go { transform: none; } .dcard:active, .btn:active, .tnav a:active, .seg a:active, .vt:active, .mclose:active { --sc: 1; transform: none; }
+  .dv-enter .topbar, .dv-enter .pband, .dv-enter .brief, .dv-enter .dcard, .dv-enter .tb-av, .dv-enter .pb-sec, .dv-enter .pb-tags .chip, .dv-swap > * { animation: dv-fade 150ms linear backwards !important; animation-delay: 0ms !important; }
+  .dv-enter body::before { animation: dv-fade 150ms linear backwards; }
+  .modal-back::before, .modal, .modal-back:not(.swap) .mbody > * { animation: dv-fade 140ms linear backwards; } .modal-back.swap .mbody > :not(.dhead):not(.seg) { animation: dv-fade 140ms linear backwards; }
+  .modal-back.swap::before, .modal-back.swap .modal { animation: none; }
+  .modal-back.closing::before, .modal-back.closing .modal { animation: dv-fade-out 100ms linear forwards; } .modal-back.closing .mbody > * { animation: none; }
+  .dcard.rv-wait { --ty: 0px; } .adh i { transform: none; } .edge-fade { transition: none; }
+}
+/* the boxes under reduced motion (and without SVG filters): no ripple, no goo, no morph; the details simply fade in (150 ms) inside the one big box */
+@media (prefers-reduced-motion: reduce) {
+  .brief .rp, .brief .chev { display: none; }
+  .brief .bc, .brief.content-on .bc { transition: opacity 150ms linear; }
+}
+html.no-goo .brief .rp { display: none; }
+/* print: solid surfaces in light colours whatever the theme, no animation, no blur, no translucency */
+@media print {
+  :root, :root[data-theme="dark"] { --bg: #FFFFFF; --surface: #FFFFFF; --surface-2: #FFFFFF; --ink: #261A22; --ink-2: #4D3A46; --muted: #6A5561; --line: #E2C6CC; --primary: #A2305F; --primary-ink: #A2305F; --primary-soft: #F6DCE5; --on-primary: #FFFFFF; --brand-rgb: 255, 255, 255; --head-rgb: 248, 228, 230; --on-sig: #261A22; --ctl: rgba(38, 26, 34, .06); }
+  *, *::before, *::after { animation: none !important; transition: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+  body::before, body::after, .pband::before, .pband::after, .pb-sec::before, .dcard::before, .dcard::after, .modal::before, .topbar::before, .edge-fade { display: none !important; }
+  body { background: #fff !important; } .topbar, .tnav, .seg, .btn, .pband, .pb-sec, .dcard, .brief, .briefs, .card, .gtip { background: #fff !important; box-shadow: none !important; }
+  /* print: every box fully expanded in normal flow with all its rows; no blob, ripple or filter */
+  .brief { border: 1px solid #E2C6CC !important; border-radius: 16px; break-inside: avoid; } .brief .shapes, .brief .rp, .brief .hair, .brief .bridge, .brief .chev { display: none !important; }
+  .brief .bc { position: static !important; opacity: 1 !important; max-height: none !important; overflow: visible !important; width: auto; padding: 0 !important; pointer-events: auto; }
+  .topbar { position: static; width: auto; margin: 0; } .dv-side { display: none !important; } .dv-body { display: block; padding: 0; } .ind { display: none; } .tnav a.on, .seg a.on { background: #F6DCE5; color: #A2305F; } .dcard { transform: none !important; } .dcard.rv-wait { opacity: 1 !important; }
+}

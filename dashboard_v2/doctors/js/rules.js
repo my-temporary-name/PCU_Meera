@@ -213,7 +213,7 @@ function activity(data) {
   const out = result(data, 'activity', 'Physical activity', t, { headline: ip ? `IPAQ ${ip.category} (${ip.met} MET-min/week) · median ${data.derived.steps.median.toLocaleString('en-US')} steps/day · ${(data.derived.sedentary.median / 60).toFixed(1)} h sedentary` : `Median ${data.derived.steps.median} steps/day` });
   if (!ip) { out.signal = 'notcomputed'; out.rules = []; out.notes.push('Not computed: there is no IPAQ entry. Steps and sedentary time are shown as plain values.'); }
   out.notes.push('P3 needs the doctors\' definitions of "persistently", "high" and "deterioration". Without them it is not scored and the signal stays Amber (default Q6, Q10).');
-  out.notes.push('Wearable steps are low and the IPAQ is low; they agree. The persona\'s own step range is not mixed in.');
+  out.notes.push('Wearable steps are low and the IPAQ is low; they agree.');
   return out;
 }
 
@@ -228,7 +228,7 @@ function lifestyle(data) {
   const tobacco = data.standing.life.find((x) => x.domain === 'Tobacco');
   const alcohol = data.standing.life.find((x) => x.domain === 'Alcohol');
   const mods = [];
-  if (sleep.last7 < 7) mods.push({ name: 'Sleep under 7 hours', detail: `7-night average ${sleep.last7} h (source: ${sleep.source}); year median ${sleep.median_year} h`, b: 'data' });
+  if (sleep.last7 < 7) mods.push({ name: 'Sleep under 7 hours', detail: `7-night average ${sleep.last7} h; year median ${sleep.median_year} h`, b: 'data' });
   if (fam) mods.push({ name: 'First-degree family history of type 2 diabetes', detail: `${fam.relative}, onset ${fam.onset}`, b: fam.b });
   if (occ && /adverse/i.test(occ.value)) mods.push({ name: 'Adverse occupational pattern', detail: occ.detail, b: occ.b });
   if (masld) mods.push({ name: 'MASLD', detail: `documented ${masld.date}`, b: masld.b });
@@ -299,7 +299,7 @@ function notices(data) {
   return [
     { id: 1, title: 'HbA1c and CGM differ', text: `Lab HbA1c ${min(a1cs)} to ${max(a1cs)}% against a CGM-based estimate (GMI) of ${min(gmis)} to ${max(gmis)}% and ${data.cgm.year.tir}% time in range. Fructosamine (${frs.length ? min(frs.map((x) => x[1])) + ' to ' + max(frs.map((x) => x[1])) : 'not recorded'} µmol/L) follows the CGM. Possible glycation gap: HbA1c reads higher than glucose monitoring (document reference 22).` },
     { id: 2, title: `${below.length} readings of 65.0 mg/dL are isolated sensor artifacts`, text: `They are not hypoglycemia and are not counted as events (${below.map((x) => x[0].slice(0, 10)).join(', ')}). The cleaned glucose series has no real reading under 70 or under 54.` },
-    { id: 3, title: 'Activity data conflict', text: `Wearable steps are low (median ${data.derived.steps.median.toLocaleString('en-US')} a day) and the IPAQ is low. The persona's own step range (3,000 to 9,000) is not mixed in.` },
+    { id: 3, title: 'Activity data conflict', text: `Wearable steps are low (median ${data.derived.steps.median.toLocaleString('en-US')} a day) and the IPAQ is low.` },
     { id: 4, title: 'Only a few lab dates exist in the data year', text: `${labDates.size} lab dates from 15 Sep 2025 to 17 Sep 2026. Always read each value with its date.` },
   ];
 }

@@ -41,12 +41,22 @@ function buildSidebar() {
   const p = S.meta.patient;
   const side = document.getElementById('sidebar');
   side.replaceChildren(
+    h('button', { class: 'side-close', type: 'button', title: 'Hide the sidebar', 'aria-label': 'Hide the sidebar', onclick: () => setSide(false), html: SIDE_ICON }),
     h('div', { class: 'brand' },
       h('div', { class: 'brand-mark' }, h('svg', { viewBox: '0 0 32 32', width: 20, height: 20, html: '<path d="M4 17h6l3-8 5 15 3-7h7" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>' })),
       h('div', {}, h('div', { class: 'brand-name' }, 'Clinical Timeline + Pipeline'), h('div', { class: 'brand-sub' }, 'Patient record and pipeline trace'))),
     nav,
     h('div', { class: 'side-foot' }, h('b', {}, p.name), h('div', { class: 'muted' }, `${p.age} y · ${p.sex} · ${fmtDate(S.first, { year: true })} → ${fmtDate(S.last, { year: true })}`)));
 }
+
+// the sidebar can be hidden (a grey button in its corner) and brought back (a grey button in the top bar); the choice is remembered
+const SIDE_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>';
+function setSide(open) {
+  const app = document.querySelector('.app'); if (!app) return;
+  app.classList.toggle('side-closed', !open);
+  try { localStorage.setItem('sideClosed', open ? '0' : '1'); } catch (e) { /* ignore */ }
+}
+try { if (localStorage.getItem('sideClosed') === '1') document.querySelector('.app').classList.add('side-closed'); } catch (e) { /* ignore */ }
 
 function setTopbar(crumbs) {
   const bar = document.getElementById('topbar');
@@ -56,10 +66,21 @@ function setTopbar(crumbs) {
     trail.append(i === crumbs.length - 1 || !href ? h('span', { class: 'here' }, label) : h('a', { href }, label));
   });
   const dark = document.documentElement.dataset.theme === 'dark';
+  trail.prepend(h('button', { class: 'side-open', type: 'button', title: 'Show the sidebar', 'aria-label': 'Show the sidebar', onclick: () => setSide(true), html: SIDE_ICON }));
   bar.replaceChildren(trail, h('div', { class: 'actions' },
     h('button', { class: 'btn icon', title: 'Toggle theme', onclick: toggleTheme }, icon(dark ? 'sun' : 'moon')),
     h('button', { class: 'btn', title: 'Print this view', onclick: () => window.print() }, icon('print'), 'Print')));
 }
+
+// the Doctor's view (in its frame) asks the shell to switch theme; the frame has already switched itself, so nothing is reloaded
+window.addEventListener('message', (e) => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== 'dv-theme' || !/^(light|dark)$/.test(e.data.theme)) return;
+  document.documentElement.dataset.theme = e.data.theme;
+  try { localStorage.setItem('theme', e.data.theme); } catch (err) { /* ignore */ }
+  const b = document.querySelector('.actions .btn.icon'); if (b) b.replaceChildren(icon(e.data.theme === 'dark' ? 'sun' : 'moon'));
+});
+// when the shell's top bar is hidden (Doctor's view) and the sidebar is closed, a small grey button brings the sidebar back
+document.body.append(h('button', { class: 'side-open-float', type: 'button', title: 'Show the sidebar', 'aria-label': 'Show the sidebar', onclick: () => setSide(true), html: SIDE_ICON }));
 
 function toggleTheme() {
   const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
@@ -83,6 +104,7 @@ async function route() {
     const crumbs = (await mod.render(page, args)) || [['Full year']];
     if (my !== token) return;
     setTopbar(crumbs);
+    document.querySelector('.app').classList.toggle('bare', name === 'doctors'); // the Doctor's view carries its own controls, so the shell's top bar is hidden there
     window.scrollTo(0, 0);
   } catch (err) {
     console.error(err);
