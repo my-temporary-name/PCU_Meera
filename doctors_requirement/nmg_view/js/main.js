@@ -2,7 +2,7 @@
 import { h, fmtDate, ms, num, ago, pv, spark, CHEV, MON } from './ui.js';
 import { evaluate, RULES, SENTENCE, goalOf, addMonths, daysBetween, iso } from './rules.js';
 import { trendChart, palette } from './charts.js';
-import { predictions, recommendations, PRED_DOMAIN } from './outlook.js';
+import { predictions, recommendations, PRED, PRED_DOMAIN } from './outlook.js';
 import { initScribe } from './scribe.js';
 import { scheduleBar, schedulePage } from './schedule.js';
 
@@ -312,13 +312,50 @@ function switchTheme(ev, want) {
 }
 
 function topbar(route) {
-  const t = document.documentElement.dataset.theme, S = data.standing, sx = S.sex.sex[0].toUpperCase() + S.sex.sex.slice(1);
+  const S = data.standing, sx = S.sex.sex[0].toUpperCase() + S.sex.sex.slice(1);
   const patientBlock = h('div', { class: 'tb-pt' }, h('div', { class: 'tb-av', title: data.meta.patient }, h('img', { src: 'img/meera.jpg', alt: data.meta.patient })),
     h('div', { class: 'tb-id' }, h('h1', { class: 'tb-name' }, data.meta.patient),
       h('div', { class: 'tb-facts' }, h('span', {}, `${S.age.age_years} years · ${sx}`), h('span', {}, `Born ${fmtDate(S.age.date_of_birth)}`), h('span', {}, S.life.find((x) => x.domain === 'Occupation').value))));
-  return h('header', { class: 'topbar' }, EMBED ? null : h('div', { class: 'brand' }, h('span', { class: 'brand-mark', html: '<svg viewBox="0 0 24 24"><path d="M3 13h4l2.5-6 4 12 2.5-6h5"/></svg>' }), "Doctor's view"),
-    patientBlock, h('span', { class: 'top-sp' }), h('span', { class: 'chip' }, `As of ${fmtDate(AS_OF)}`)
-    );
+  const more = h('button', { type: 'button', class: 'tb-more', 'aria-expanded': 'false', 'aria-controls': 'tb-prof' }, h('span', {}, 'Profile'), h('span', { class: 'tb-chev', 'aria-hidden': 'true', html: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>' }));
+  const prof = h('section', { class: 'tb-prof', id: 'tb-prof', 'aria-label': 'Profile', inert: '' }, h('div', { class: 'tb-prof-in' }, profilePanel()));
+  const bar = h('header', { class: 'topbar pt' }, h('div', { class: 'tb-row' }, EMBED ? null : h('div', { class: 'brand' }, h('span', { class: 'brand-mark', html: '<svg viewBox="0 0 24 24"><path d="M3 13h4l2.5-6 4 12 2.5-6h5"/></svg>' }), "Doctor's view"),
+    patientBlock, h('span', { class: 'top-sp' }), h('span', { class: 'chip' }, `As of ${fmtDate(AS_OF)}`), more), prof);
+  bindProfile(bar, more, prof);
+  return bar;
+}
+// the profile opens under the banner on hover (or a tap / Enter on the Profile button) and pushes the page down; it never overlaps anything
+function bindProfile(bar, btn, prof) {
+  const HOVER = matchMedia('(hover: hover) and (pointer: fine)'); let tIn = 0, tOut = 0, pinned = false;
+  const set = (v) => { bar.classList.toggle('open', v); btn.setAttribute('aria-expanded', String(v)); if (v) prof.removeAttribute('inert'); else prof.setAttribute('inert', ''); };
+  bar.addEventListener('mouseenter', () => { if (!HOVER.matches) return; clearTimeout(tOut); clearTimeout(tIn); tIn = setTimeout(() => set(true), 140); });
+  bar.addEventListener('mouseleave', () => { if (!HOVER.matches) return; clearTimeout(tIn); if (!pinned) { clearTimeout(tOut); tOut = setTimeout(() => set(false), 260); } });
+  btn.addEventListener('click', () => { if (bar.classList.contains('open') && pinned) { pinned = false; set(false); } else { pinned = true; set(true); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && bar.classList.contains('open') && bar.isConnected) { pinned = false; set(false); } });
+  document.addEventListener('pointerdown', (e) => { if (pinned && bar.isConnected && !bar.contains(e.target)) { pinned = false; set(false); } }, true);
+  if (typeof ResizeObserver === 'function') new ResizeObserver(() => { if (window.__syncEdge) window.__syncEdge(); window.dispatchEvent(new Event('dv-bar')); }).observe(bar);
+}
+// the detailed profile: who she is, everything on her problem list, family, habits and work, and the scans on file
+function profilePanel() {
+  const S = data.standing, grp = (title, ...kids) => h('div', { class: 'tbp-g' }, h('div', { class: 'tbp-h' }, title), ...kids);
+  const row = (k, t, tip, cls) => h('div', { class: `tbp-r${cls ? ' ' + cls : ''}`, title: tip || null }, k ? h('b', {}, k) : null, h('span', {}, t));
+  const life = (d) => S.life.find((x) => x.domain === d);
+  const conds = S.conds.filter((c) => /active|self-reported/i.test(c.status) && !/none/i.test(c.status));
+  const fam = S.fam.filter((f) => f.onset || f.year);
+  const scans = (S.imaging || []).map((m) => row(`${m.modality}, ${monYr(m.d)}`, m.impression.split(';')[0], `${m.indication}\n${m.finding}`));
+  return [
+    grp('About her',
+      row('Work pattern', life('Occupation').detail),
+      row('Home', life('Household').value),
+      row('Weight and build', `${data.vars.weight.latest.v} kg, BMI ${data.vars.bmi.latest.v.toFixed(1)}, waist ${Math.round(data.vars.waist.latest.v)} cm`)),
+    grp('Problem list',
+      conds.map((c) => row(c.name.replace(/ \(.*\)$/, '').replace(/ \/ .*$/, ''), `${c.date ? c.date.slice(0, 4) + ', ' : ''}${c.status.replace(/^active, /, '').replace('self-reported, intermittent', 'self-reported')}`, c.note, 'in'))),
+    grp('Family history', fam.map((f) => row(f.relative, `${f.condition.replace(/^Coronary artery disease with bypass surgery$/, 'Heart bypass surgery').replace(/^Type/, 'type').replace(/^Hypertension/, 'hypertension')}${f.onset ? `, age ${f.onset}` : ''}`, null, 'in')),
+      scans.length ? h('div', { class: 'tbp-h sub' }, 'Scans on file') : null, ...scans),
+    grp('Habits',
+      row('Smoking', life('Tobacco').value, null, 'in'), row('Alcohol', life('Alcohol').value, null, 'in'), row('Caffeine', life('Caffeine').value, null, 'in'),
+      row('Meals', life('Diet pattern').value, life('Diet pattern').detail, 'in'),
+      row('Activity', life('Physical activity').value, null, 'in'))
+  ];
 }
 // the page tabs: a vertical rail on the left (a row on narrow screens)
 function sideNav(route) {
@@ -461,6 +498,29 @@ document.addEventListener('pointerdown', (e) => { if (BOX.open && !BOX.open.cont
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && BOX.open) closeBox(BOX.open); });
 window.addEventListener('resize', () => { if (BOX.open) sizeBox(BOX.open); });
 
+// the patient summary: how long she has been in follow-up, what she is going through, her medicines, and which way her results are heading (all from her own record)
+function summary() {
+  const S = data.standing, dx = data.meta.dx_date, g14 = data.cgm.w14, g90 = data.cgm.w90, sl = data.derived.sleep;
+  const mo = (+AS_OF.slice(0, 4) - +dx.slice(0, 4)) * 12 + (+AS_OF.slice(5, 7) - +dx.slice(5, 7)) - (+AS_OF.slice(8, 10) < +dx.slice(8, 10) ? 1 : 0), yr = Math.floor(mo / 12), mr = mo % 12;
+  const span = `${yr} year${yr === 1 ? '' : 's'}${mr ? ` ${mr} month${mr === 1 ? '' : 's'}` : ''}`;
+  const meds = S.meds.filter((m) => m.status === 'active'), ad = meds.map((m) => data.adherence[m.adherence_id]).filter(Boolean).map((a) => a.last90);
+  const worse = [], better = [], same = [], nm = (v) => v.label.replace(/, clinic$/, ' (clinic)');
+  PRED.forEach((c) => { const v = data.vars[c.key]; if (!v || !v.prev) return; const a = v.prev.v, b = v.latest.v, rel = Math.abs(b - a) / Math.max(Math.abs(a), 1e-9);
+    if (rel < 0.02) same.push(nm(v)); else (((b > a) === (c.worse === 'up')) ? worse : better).push(`${nm(v)} ${fv(c.key, a)} \u2192 ${fv(c.key, b)}`); });
+  if (g14.mean > g90.mean + 3) worse.push(`Average glucose ${Math.round(g90.mean)} \u2192 ${Math.round(g14.mean)} (90 days against 14)`);
+  const li = (k, t) => h('li', {}, h('b', {}, k), t);
+  const rows = [
+    li('In follow-up', `${span}, since ${fmtDate(dx)} \u00b7 ${S.visits.length} visits`),
+    li('Treated for', 'Type 2 diabetes, hypertension, underactive thyroid; also high triglycerides, extra weight, fatty liver'),
+    li('Going through', `A hard month: quarter-close at work, then festival hosting. Tired and foggy, walks slipped, sleep about ${sl.last7.toFixed(1)} h`),
+    li('Medicines', `${meds.map((m) => `${m.name} ${m.dose}`).join(', ')}; taken ${Math.min(...ad)} to ${Math.max(...ad)} % of days. No cholesterol medicine; a second diabetes medicine put off`),
+    worse.length ? li('Going the wrong way', worse.join(', ')) : null,
+    better.length ? li('Improving', better.join(', ')) : null,
+    same.length ? li('Holding steady', same.join(', ')) : null,
+  ].filter(Boolean);
+  return { sub: `${span} in follow-up`, rows };
+}
+
 // four short cards under the banner: who she is, what happened at the last visit, what her PCU shows since, and what she brings today
 function briefs() {
   const S = data.standing, prev = S.visits.filter((v) => v.d < AS_OF).slice(-1)[0];
@@ -469,13 +529,9 @@ function briefs() {
   const brief = (cls, title, sub, ...pts) => h('section', { class: `brief ${cls}` },
     h('div', { class: 'bh' }, h('span', {}, title), sub ? h('small', {}, sub) : null), h('ul', {}, pts));
   const li = (k, t) => h('li', {}, k ? h('b', {}, k.replace(/:$/, '')) : null, t); // a label sits on its own line above its value, so the colon is dropped
-  const wide = WIDE();
+  const wide = WIDE(), summ = summary();
   return enhanceBoxes(h('div', { class: `briefs${wide ? ' rail' : ''}` },
-    brief('b-prof', 'Profile', null,
-      li('Alongside diabetes:', 'hypertension on amlodipine, subclinical hypothyroidism on levothyroxine'),
-      li('Also', 'dyslipidemia, obesity and grade 1 hepatic steatosis'),
-      li('Mother:', 'type 2 diabetes'),
-      li('Father:', 'coronary bypass in 2019')),
+    brief('b-sum', 'Patient summary', summ.sub, ...summ.rows),
     brief('b-last', 'Last visit', `${fmtDate(prev.d)} · ${weeks} weeks ago`,
       li('Type:', prev.type),
       li('Came with:', prev.reason),
@@ -808,7 +864,7 @@ function go() {
   const r = parseRoute(), root = document.getElementById('root');
   const content = MODAL_PAGES.includes(r.page) ? (() => { const dp = r.page === 'd' ? domainPage(r.id, r.tab, r.key) : r.page === 'p' ? predPopup(r.id) : recPopup(r.id); return [...overviewPage(), modal(dp, lastFit)]; })() : r.page === 'review' ? [followup()] : r.page === 'notices' ? [notices()] : r.page === 'graphs' ? [graphsPage()] : r.page === 'rules' ? [rulesPage()] : overviewPage();
   const cat = (p) => (p === '' || MODAL_PAGES.includes(p) ? 'overview' : p), swapPage = !firstDraw && lastPage !== null && cat(lastPage) !== cat(r.page) && !CALM.matches;
-  if (firstDraw) { document.documentElement.classList.add('dv-enter'); setTimeout(() => document.documentElement.classList.remove('dv-enter'), 2200); }
+  if (firstDraw) { document.documentElement.classList.add('dv-enter'); setTimeout(() => { document.documentElement.classList.remove('dv-enter'); if (window.__syncEdge) window.__syncEdge(); }, 2200); }
   document.body.classList.toggle('on-schedule', r.page === 'schedule');
   if (r.page === 'schedule') {
     root.replaceChildren(scheduleBar(AS_OF), schedulePage(AS_OF, () => { location.hash = '#/'; }));

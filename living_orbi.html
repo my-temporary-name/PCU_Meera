@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Living orb</title>
+<style>
+  /* The orb is additive light, so this page stays dark in every viewer theme. */
+  :root {
+    --bg: #000000;
+    --ink: #ece9ff;
+    --ink-dim: #9a97b4;
+    --line: rgba(255, 255, 255, 0.16);
+    --fill: rgba(255, 255, 255, 0.06);
+    --fill-on: rgba(255, 255, 255, 0.16);
+    --focus: #b9a6ff;
+    color-scheme: dark;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+  *, *::before, *::after { box-sizing: inherit; }
+  body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow: hidden;
+  }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #glow { filter: blur(18px) saturate(1.35); opacity: 0.9; mix-blend-mode: screen; }
+  #orb { touch-action: none; }
+
+  .dock {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 26px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 0 16px;
+    pointer-events: none;
+  }
+  .dock > * { pointer-events: auto; }
+  #status {
+    margin: 0;
+    min-height: 1.4em;
+    max-width: 34ch;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--ink-dim);
+  }
+  .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  button {
+    font: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--fill);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background 0.25s ease, border-color 0.25s ease;
+  }
+  button:hover { background: var(--fill-on); }
+  button[aria-pressed="true"] { background: var(--fill-on); border-color: rgba(255, 255, 255, 0.42); }
+  button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  #mic { color: var(--ink-dim); }
+  #mic[aria-pressed="true"] { color: var(--ink); }
+</style>
+</head>
+<body>
+<canvas id="glow" aria-hidden="true"></canvas>
+<canvas id="orb" role="img" aria-label="A glowing orb of blue and violet light ribbons that moves like a living creature"></canvas>
+
+<div class="dock">
+  <p id="status" aria-live="polite"></p>
+  <div class="row" role="group" aria-label="Orb state">
+    <button type="button" data-state="idle" aria-pressed="true">Idle</button>
+    <button type="button" data-state="listening" aria-pressed="false">Listening</button>
+    <button type="button" data-state="thinking" aria-pressed="false">Thinking</button>
+    <button type="button" data-state="speaking" aria-pressed="false">Speaking</button>
+  </div>
+  <button type="button" id="mic" aria-pressed="false">Drive it with your microphone</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var orbC = document.getElementById('orb');
+  var glowC = document.getElementById('glow');
+  var ctx = orbC.getContext('2d');
+  var gctx = glowC.getContext('2d');
+  var statusEl = document.getElementById('status');
+  var micBtn = document.getElementById('mic');
+  var stateBtns = Array.prototype.slice.call(document.querySelectorAll('button[data-state]'));
+
+  var TAU = Math.PI * 2;
+  var GS = 0.5; // glow canvas resolution scale
+  var W = 0, H = 0, DPR = 1, R = 120, cx = 0, cy = 0;
+  var reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    orbC.width = Math.round(W * DPR);
+    orbC.height = Math.round(H * DPR);
+    glowC.width = Math.max(1, Math.round(W * DPR * GS));
+    glowC.height = Math.max(1, Math.round(H * DPR * GS));
+    R = Math.min(W, H * 0.78) * 0.26;
+    cx = W / 2;
+    cy = H * 0.44;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* ---------- states ---------- */
+  var STATES = {
+    idle:      { speed: 0.55, noise: 0.32, spread: 1.0,  radius: 1.0,  energy: 0.85, spin: 1.0, hint: 'Waiting quietly. Move your cursor to tilt it.' },
+    listening: { speed: 0.80, noise: 0.50, spread: 1.15, radius: 0.97, energy: 1.05, spin: 1.1, hint: 'Reacting to sound. Turn on the microphone to drive it with your voice.' },
+    thinking:  { speed: 1.70, noise: 0.42, spread: 0.70, radius: 0.90, energy: 1.10, spin: 2.4, hint: 'Swirling faster while it works.' },
+    speaking:  { speed: 1.05, noise: 0.85, spread: 1.30, radius: 1.03, energy: 1.20, spin: 1.3, hint: 'Pulsing with a simulated voice.' }
+  };
+  var P = { speed: 0.55, noise: 0.32, spread: 1, radius: 1, energy: 0.85, spin: 1 };
+  var target = STATES.idle;
+
+  function setState(name) {
+    target = STATES[name];
+    stateBtns.forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-state') === name ? 'true' : 'false'); });
+    statusEl.textContent = target.hint;
+  }
+  stateBtns.forEach(function (b) {
+    b.addEventListener('click', function () { setState(b.getAttribute('data-state')); });
+  });
+  setState('idle');
+
+  /* ---------- ribbons ---------- */
+  var rings = [
+    { rf: 1.00, sq: 0.82, a0: 1.15, y0: 0.35,  z0: 0.2, fa: 0.31, fb: 0.23, fz:  0.11, s: 0.0, ph: 0.0, n: 22, roff: -0.10 },
+    { rf: 0.97, sq: 0.70, a0: 0.55, y0: 1.05,  z0: 1.9, fa: 0.27, fb: 0.34, fz: -0.09, s: 2.1, ph: 1.3, n: 22, roff:  0.25 },
+    { rf: 1.03, sq: 0.90, a0: 1.45, y0: -0.70, z0: 3.4, fa: 0.22, fb: 0.29, fz:  0.08, s: 4.2, ph: 2.6, n: 20, roff: -0.30 },
+    { rf: 0.92, sq: 0.62, a0: 0.20, y0: 0.60,  z0: 4.7, fa: 0.35, fb: 0.19, fz: -0.13, s: 5.7, ph: 3.9, n: 18, roff:  0.12 }
+  ];
+
+  // conic palette, angle measured clockwise from the right; warm accent sits lower right
+  var STOPS = [
+    [0.00, '140,100,255'],
+    [0.08, '255,170,130'],
+    [0.15, '255,150,100'],
+    [0.22, '190,110,255'],
+    [0.32, '70,100,255'],
+    [0.45, '200,160,255'],
+    [0.55, '110,100,255'],
+    [0.70, '60,110,255'],
+    [0.85, '150,90,255'],
+    [1.00, '140,100,255']
+  ];
+  function makeGradient(rot) {
+    var g;
+    if (ctx.createConicGradient) {
+      g = ctx.createConicGradient(rot, cx, cy);
+    } else {
+      g = ctx.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+    }
+    for (var i = 0; i < STOPS.length; i++) g.addColorStop(STOPS[i][0], 'rgb(' + STOPS[i][1] + ')');
+    return g;
+  }
+
+  /* ---------- particles ---------- */
+  var parts = [];
+  var PCOL = ['255,165,115', '255,140,190', '255,190,140', '175,190,255'];
+  for (var pi = 0; pi < 34; pi++) {
+    parts.push({
+      a: Math.random() * TAU,
+      d: Math.sqrt(Math.random()) * 0.52,
+      f: 0.2 + Math.random() * 0.5,
+      p: Math.random() * 10,
+      sz: 0.6 + Math.random() * 1.4,
+      c: PCOL[Math.floor(Math.random() * PCOL.length)]
+    });
+  }
+
+  /* ---------- input: pointer, pulse, microphone ---------- */
+  var tx = 0, ty = 0, px = 0, py = 0, pulse = 0;
+  window.addEventListener('pointermove', function (e) {
+    tx = (e.clientX / Math.max(1, W) - 0.5) * 2;
+    ty = (e.clientY / Math.max(1, H) - 0.5) * 2;
+  });
+  orbC.addEventListener('pointerdown', function () { pulse = 1; });
+
+  var micOn = false, analyser = null, micBuf = null, micStream = null, audioCtx = null;
+  function readMic() {
+    analyser.getByteTimeDomainData(micBuf);
+    var s = 0;
+    for (var i = 0; i < micBuf.length; i++) { var v = (micBuf[i] - 128) / 128; s += v * v; }
+    return Math.min(1, Math.sqrt(s / micBuf.length) * 5);
+  }
+  function stopMic() {
+    micOn = false;
+    if (micStream) { micStream.getTracks().forEach(function (t) { t.stop(); }); micStream = null; }
+    if (audioCtx) { try { audioCtx.close(); } catch (e) {} audioCtx = null; }
+    micBtn.setAttribute('aria-pressed', 'false');
+    micBtn.textContent = 'Drive it with your microphone';
+  }
+  micBtn.addEventListener('click', function () {
+    if (micOn) { stopMic(); return; }
+    try {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AC();
+        var src = audioCtx.createMediaStreamSource(stream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        micBuf = new Uint8Array(analyser.fftSize);
+        src.connect(analyser);
+        micStream = stream;
+        micOn = true;
+        micBtn.setAttribute('aria-pressed', 'true');
+        micBtn.textContent = 'Microphone on, tap to stop';
+      }).catch(function () {
+        micBtn.textContent = 'Microphone not available here';
+      });
+    } catch (e) {
+      micBtn.textContent = 'Microphone not available here';
+    }
+  });
+
+  function simAmp(name, t) {
+    if (name === 'speaking') {
+      var e = Math.sin(t * 6.3) * Math.sin(t * 2.1 + 1) * 0.5 + 0.5;
+      e = Math.pow(e, 1.5);
+      return 0.15 + 0.75 * e * (0.6 + 0.4 * Math.sin(t * 11.7));
+    }
+    if (name === 'listening') return 0.12 + 0.1 * Math.sin(t * 1.7);
+    if (name === 'thinking') return 0.10 + 0.06 * Math.sin(t * 3);
+    return 0.03 + 0.03 * Math.sin(t * 0.8);
+  }
+  function currentName() {
+    for (var i = 0; i < stateBtns.length; i++) {
+      if (stateBtns[i].getAttribute('aria-pressed') === 'true') return stateBtns[i].getAttribute('data-state');
+    }
+    return 'idle';
+  }
+
+  /* ---------- drawing ---------- */
+  function drawRing(r, ri, T, SA, amp, Reff) {
+    var noise = (P.noise + amp * 0.7) * (reduce ? 0.5 : 1);
+    var ax = r.a0 + 0.5 * Math.sin(T * r.fa + r.s) + py * 0.3;
+    var ay = r.y0 + 0.5 * Math.sin(T * r.fb + r.s * 1.3) + px * 0.3;
+    var az = r.z0 + SA * r.fz;
+    var swirl = Math.max(0, Math.min(1, (P.spin - 1) / 1.4));
+    var rot = r.roff + 0.15 * Math.sin(T * 0.2 + r.s) + swirl * SA * 0.6;
+    ctx.strokeStyle = makeGradient(rot);
+
+    var N = 96;
+    for (var s = 0; s < r.n; s++) {
+      var kk = (s / (r.n - 1)) * 2 - 1;
+      var edge = 1 - Math.abs(kk);
+      var axk = ax + kk * 0.05 * P.spread;
+      var ayk = ay + kk * 0.04 * P.spread;
+      var cax = Math.cos(axk), sax = Math.sin(axk);
+      var cay = Math.cos(ayk), say = Math.sin(ayk);
+      var caz = Math.cos(az),  saz = Math.sin(az);
+
+      ctx.globalAlpha = (0.10 + 0.20 * edge) * P.energy;
+      ctx.lineWidth = 0.8 + edge * 0.7;
+      ctx.beginPath();
+      for (var i = 0; i <= N; i++) {
+        var t = (i / N) * TAU;
+        var tp = t + r.ph + kk * 0.04;
+        var wob = 1 + noise * (
+          0.090 * Math.sin(2 * t + T * 0.7 + r.s + kk * 0.45) +
+          0.055 * Math.sin(3 * t - T * 0.9 + r.s * 1.7 - kk * 0.6) +
+          0.035 * Math.sin(5 * t + T * 1.1 + kk * 0.9)
+        );
+        var rad = Reff * r.rf * wob * (1 + kk * 0.05 * P.spread);
+        var x = rad * Math.cos(tp);
+        var y = rad * Math.sin(tp) * r.sq;
+        var z = rad * 0.18 * Math.sin(2 * t + T * 0.5 + r.s + kk * 0.3);
+        var y1 = y * cax - z * sax;
+        var z1 = y * sax + z * cax;
+        var x2 = x * cay + z1 * say;
+        var z2 = -x * say + z1 * cay;
+        var x3 = x2 * caz - y1 * saz;
+        var y3 = x2 * saz + y1 * caz;
+        var pers = 1 / (1 - z2 / (Reff * 4));
+        var X = cx + x3 * pers;
+        var Y = cy + y3 * pers;
+        if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+
+  function drawParticles(T, SA, Reff) {
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      var ang = p.a + SA * 0.03 * p.f + Math.sin(T * p.f + p.p) * 0.25;
+      var dist = p.d * (1 + 0.08 * Math.sin(T * 0.6 * p.f + p.p));
+      var x = cx + Math.cos(ang) * dist * Reff + px * 6;
+      var y = cy + Math.sin(ang) * dist * Reff * 0.8 + Reff * 0.16;
+      var tw = Math.pow(0.5 + 0.5 * Math.sin(T * (1.2 + p.f * 2) + p.p * 3), 2);
+      var a = (0.25 + 0.75 * tw) * Math.min(1, P.energy);
+      ctx.fillStyle = 'rgba(' + p.c + ',' + (a * 0.16).toFixed(3) + ')';
+      ctx.beginPath(); ctx.arc(x, y, p.sz * 3.4, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,225,200,' + a.toFixed(3) + ')';
+      ctx.beginPath(); ctx.arc(x, y, p.sz, 0, TAU); ctx.fill();
+    }
+  }
+
+  var last = performance.now(), T = 0, SA = 0, amp = 0;
+  function frame(now) {
+    var dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    var k = 1 - Math.exp(-dt * 3);
+    for (var key in P) P[key] += (target[key] - P[key]) * k;
+
+    var sm = reduce ? 0.5 : 1;
+    T += dt * P.speed * sm;
+    SA += dt * P.spin * sm;
+
+    px += (tx - px) * (1 - Math.exp(-dt * 4));
+    py += (ty - py) * (1 - Math.exp(-dt * 4));
+    pulse = Math.max(0, pulse - dt * 1.6);
+
+    var ampT = micOn ? readMic() : simAmp(currentName(), now / 1000);
+    ampT = Math.max(ampT, pulse * 0.6);
+    amp += (ampT - amp) * (1 - Math.exp(-dt * 12));
+
+    var Reff = R * (P.radius + amp * 0.10 + Math.sin(T * 0.9) * 0.02);
+    var E = P.energy;
+
+    /* orb canvas */
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, orbC.width, orbC.height);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.globalCompositeOperation = 'lighter';
+
+    var ig = ctx.createRadialGradient(cx, cy + Reff * 0.35, Reff * 0.05, cx, cy + Reff * 0.35, Reff * 0.95);
+    ig.addColorStop(0, 'rgba(60,90,255,' + (0.22 * E).toFixed(3) + ')');
+    ig.addColorStop(0.6, 'rgba(70,60,220,' + (0.12 * E).toFixed(3) + ')');
+    ig.addColorStop(1, 'rgba(40,40,160,0)');
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = ig;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + Reff * 0.25, Reff * 0.95, Reff * 0.85, 0, 0, TAU);
+    ctx.fill();
+
+    for (var i = 0; i < rings.length; i++) drawRing(rings[i], i, T, SA, amp, Reff);
+    ctx.globalAlpha = 1;
+    drawParticles(T, SA, Reff);
+
+    /* glow canvas: blurred copy plus coloured light */
+    gctx.setTransform(1, 0, 0, 1, 0, 0);
+    gctx.globalCompositeOperation = 'source-over';
+    gctx.clearRect(0, 0, glowC.width, glowC.height);
+    gctx.drawImage(orbC, 0, 0, glowC.width, glowC.height);
+    gctx.setTransform(DPR * GS, 0, 0, DPR * GS, 0, 0);
+    gctx.globalCompositeOperation = 'lighter';
+
+    var wg = gctx.createRadialGradient(cx + Reff * 0.7, cy + Reff * 0.55, 0, cx + Reff * 0.7, cy + Reff * 0.55, Reff * 0.75);
+    wg.addColorStop(0, 'rgba(255,150,90,' + (0.22 * E).toFixed(3) + ')');
+    wg.addColorStop(1, 'rgba(255,150,90,0)');
+    gctx.fillStyle = wg;
+    gctx.fillRect(0, 0, W, H);
+
+    var bg = gctx.createRadialGradient(cx, cy + Reff * 0.3, Reff * 0.1, cx, cy + Reff * 0.3, Reff * 1.25);
+    bg.addColorStop(0, 'rgba(60,80,255,' + (0.30 * E + amp * 0.12).toFixed(3) + ')');
+    bg.addColorStop(1, 'rgba(60,80,255,0)');
+    gctx.fillStyle = bg;
+    gctx.fillRect(0, 0, W, H);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
