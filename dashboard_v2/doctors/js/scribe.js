@@ -112,7 +112,7 @@ export function initScribe() {
     root.classList.remove('low'); root.style.bottom = 'auto'; const r = bar.getBoundingClientRect(), br = body.getBoundingClientRect();
     root.style.top = `${Math.round(r.bottom + 14)}px`; root.style.right = `${Math.round(document.documentElement.clientWidth - br.right + 15)}px`;
   };
-  place(); addEventListener('scroll', place, { passive: true }); addEventListener('resize', place); addEventListener('hashchange', () => requestAnimationFrame(place));
+  place(); addEventListener('scroll', place, { passive: true }); addEventListener('resize', place); addEventListener('dv-bar', place); addEventListener('hashchange', () => requestAnimationFrame(place));
   const rootEl = document.getElementById('root'); if (rootEl) new MutationObserver(() => requestAnimationFrame(place)).observe(rootEl, { childList: true });
   run();
 }

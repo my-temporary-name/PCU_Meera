@@ -868,3 +868,26 @@ html.no-goo .brief .rp { display: none; }
   .brief .bc { position: static !important; opacity: 1 !important; max-height: none !important; overflow: visible !important; width: auto; padding: 0 !important; pointer-events: auto; }
   .topbar { position: static; width: auto; margin: 0; } .dv-body { display: block; padding: 0; } .dv-side { position: static !important; } .dv-side .tnav, .dv-brief-h { display: none !important; } .briefs.rail { display: grid !important; grid-template-columns: repeat(2, 1fr); } .ind { display: none; } .tnav a.on, .seg a.on { background: #F6DCE5; color: #A2305F; } .dcard { transform: none !important; } .dcard.rv-wait { opacity: 1 !important; }
 }
+
+
+/* ---- Patient banner: the profile opens underneath on hover and pushes the page down (grid-rows 0fr to 1fr), and the "Patient summary" box in the rail ---- */
+.topbar.pt { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 0fr; gap: 0; align-items: stretch; transition: grid-template-rows 420ms var(--ease-settle), background-color 240ms ease; }
+.topbar.pt.open { grid-template-rows: auto 1fr; background: color-mix(in srgb, var(--surface) 94%, transparent); }
+.tb-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; min-width: 0; }
+.tb-more { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 11.5px; font-weight: 600; color: var(--ink-2); background: var(--ctl); border: 0; border-radius: var(--r-m); padding: 3px 8px 3px 11px; cursor: pointer; transition: color 160ms ease, background-color 160ms ease; }
+.tb-more:hover, .topbar.pt.open .tb-more { color: var(--ink); } .tb-more:focus-visible { outline: 2px solid var(--berry); outline-offset: 2px; }
+.tb-chev { display: inline-flex; transition: transform 320ms var(--ease-settle); } .topbar.pt.open .tb-chev { transform: rotate(180deg); }
+.tb-prof { min-height: 0; overflow: hidden; visibility: hidden; transition: visibility 0s linear 420ms; } .topbar.pt.open .tb-prof { visibility: visible; transition-delay: 0s; }
+.tb-prof-in { margin-top: 8px; padding: 14px 6px 10px; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px 32px; opacity: 0; transform: translateY(-6px); transition: opacity 240ms ease, transform 320ms var(--ease-settle); }
+.topbar.pt.open .tb-prof-in { opacity: 1; transform: none; transition-delay: 120ms; }
+.tbp-g { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.tbp-h { font-size: 11px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 1px; } .tbp-h.sub { margin-top: 8px; }
+.tbp-r.in { flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0 14px; } .tbp-r.in span { text-align: right; margin-left: auto; }
+.tbp-r { display: flex; flex-direction: column; gap: 0; font-size: 12.5px; line-height: 1.38; color: var(--ink-2); } .tbp-r b { font-weight: 600; font-size: 12.5px; color: var(--ink); }
+@media (max-width: 900px) { .tb-row { gap: 10px 14px; } }
+.briefs .b-sum .bh span { font-family: var(--font-serif); }
+@media (prefers-reduced-motion: reduce) { .topbar.pt, .tb-prof, .tb-prof-in, .tb-chev { transition: none !important; } }
+@media print { .tb-more { display: none !important; } .tb-prof { visibility: visible !important; } .topbar.pt { display: block; } .tb-prof-in { opacity: 1 !important; transform: none !important; } }
+
+/* recommendation cards: the title wraps over several lines, so the hover ring must sit on the status dot (top left), not at the vertical middle of the title */
+.rcard .dc-name::after { top: 6px; margin-top: 0; }
