@@ -21,6 +21,11 @@ The only model calls are the Baseline gist, the Findings text and the PI situati
 ### `understand/`: start here
 - `how_the_numbers_flow.md`: one section per component, with the real numbers coming in and going out and why they differ (for example 77,797 readings checked, 44,469 given a status, 287 alerts, 116 cases, 29 long-term notes). Read this first to follow the whole chain.
 
+- `repo_map.md`: what is in each folder and which files to open first.
+
+### `component_understanding/`: one guide per component
+Start at `00_index.md`. Each of the eight guides has a plain-words Part A (with real examples) and a technical Part B.
+
 ### `src/v0_code/`: the code
 One sub-folder per engine, each with its own config, storage and run command:
 - `baseline_v2/`, `state_engine/`, `rulebook_lookup/`, `evidence_engine/`, `findings_engine/`, `pi_engine/`: components 3 to 8.
